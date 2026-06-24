@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# builds
+.next/
+out/
+dist/
+build/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# vercel
+.vercel
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# os / editor
+.DS_Store
+*.pem
+.idea/
+.vscode/
+
+# test / coverage
+coverage/
+
+# obsidian local state (mantém as notas, ignora cache do app)
+docs/.obsidian/workspace*
+docs/.obsidian/cache
+docs/.trash/
