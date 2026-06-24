@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Building2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,13 @@ export default function Home() {
       </h1>
 
       <p className="max-w-xl text-muted-foreground text-pretty">
-        Esqueleto inicial do projeto. As funcionalidades chegam a partir do P1
-        do TODO.
+        Suba o PDF do laudo de inspeção e receba um dashboard com semáforo,
+        não-conformidades e resumo em português que o síndico entende sozinho.
       </p>
 
-      <Button disabled>Em construção</Button>
+      <Button nativeButton={false} render={<Link href="/upload" />}>
+        Enviar laudo
+      </Button>
     </main>
   );
 }
