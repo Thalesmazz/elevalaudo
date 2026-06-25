@@ -34,6 +34,12 @@ export const laudos = pgTable("laudos", {
   extraidoEm: timestamp("extraido_em", { withTimezone: true }),
   erroExtracao: text("erro_extracao"),
 
+  // Revisão human-in-the-loop (P2). Preenchidos ao aprovar/assinar — o produto
+  // nunca publica sem isso (ADR-002, guardrail de liability).
+  assinanteNome: text("assinante_nome"),
+  assinanteCrea: text("assinante_crea"),
+  publicadoEm: timestamp("publicado_em", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

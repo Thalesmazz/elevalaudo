@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 
+import { Button } from "@/components/ui/button";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { AutoRefresh } from "./auto-refresh";
@@ -12,11 +14,11 @@ const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
   },
   revisar: {
     label: "Pronto para revisão",
-    hint: "Extração concluída. Revise e assine antes de publicar (P2).",
+    hint: "Extração concluída. Revise e assine antes de publicar.",
   },
   publicado: {
     label: "Publicado",
-    hint: "Laudo revisado e disponível no link público.",
+    hint: "Laudo revisado e assinado pelo responsável técnico.",
   },
 };
 
@@ -77,7 +79,7 @@ export default async function LaudoPage({
             <dt className="text-muted-foreground">Responsável</dt>
             <dd>
               {extracao.produtor.nome}
-              {extracao.produtor.crea ? ` · CREA ${extracao.produtor.crea}` : ""}
+              {extracao.produtor.crea ? ` · ${extracao.produtor.crea}` : ""}
             </dd>
             <dt className="text-muted-foreground">Status geral</dt>
             <dd>{extracao.statusGeral}</dd>
@@ -86,6 +88,31 @@ export default async function LaudoPage({
             <dt className="text-muted-foreground">Não-conformidades</dt>
             <dd>{totalNc}</dd>
           </dl>
+        </div>
+      ) : null}
+
+      {laudo.status === "revisar" ? (
+        <Button
+          nativeButton={false}
+          render={<Link href={`/laudos/${id}/revisar`} />}
+        >
+          Revisar e assinar
+        </Button>
+      ) : null}
+
+      {laudo.status === "publicado" ? (
+        <div className="space-y-1 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
+          <p className="font-medium">Revisado e assinado</p>
+          <p>
+            {laudo.assinanteNome}
+            {laudo.assinanteCrea ? ` · ${laudo.assinanteCrea}` : ""}
+            {laudo.publicadoEm
+              ? ` · ${laudo.publicadoEm.toLocaleDateString("pt-BR")}`
+              : ""}
+          </p>
+          <p className="text-green-800/80">
+            O dashboard e o link público chegam no P3/P4.
+          </p>
         </div>
       ) : null}
     </main>
