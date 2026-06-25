@@ -36,3 +36,7 @@ docs/.obsidian/workspace*
 docs/.obsidian/cache
 docs/.trash/
 .env*
+
+# vault privado — memoria interna, NAO publicar
+docs/
+CLAUDE.md
