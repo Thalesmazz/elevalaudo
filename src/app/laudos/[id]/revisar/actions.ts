@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { laudoSchema } from "@/lib/schema/laudo";
+import { generateShareToken } from "@/lib/share";
 
 export type AprovarInput = {
   id: string;
@@ -60,6 +61,9 @@ export async function aprovarLaudo(
       assinanteNome,
       assinanteCrea: assinanteCrea || null,
       publicadoEm: new Date(),
+      // Gera o link público ao publicar (P4, ADR-006). Reusa o token se já
+      // existe — re-publicar não muda a URL que o síndico já recebeu.
+      shareToken: laudo.shareToken ?? generateShareToken(),
     })
     .where(eq(laudos.id, input.id));
 

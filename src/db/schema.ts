@@ -40,6 +40,12 @@ export const laudos = pgTable("laudos", {
   assinanteCrea: text("assinante_crea"),
   publicadoEm: timestamp("publicado_em", { withTimezone: true }),
 
+  // Compartilhamento público (P4, ADR-006): token não-adivinhável gerado ao
+  // publicar. O síndico abre `/r/[token]` sem login. Só laudo `publicado` é
+  // visível por ele. `unique` = um laudo por token; nunca pôr dado sensível na
+  // URL além do token.
+  shareToken: text("share_token").unique(),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

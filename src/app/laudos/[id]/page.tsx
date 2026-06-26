@@ -5,8 +5,10 @@ import { eq } from "drizzle-orm";
 import { Button } from "@/components/ui/button";
 import { StatusHero } from "@/components/dashboard/status-hero";
 import { NcList } from "@/components/dashboard/nc-list";
+import { ComplianceSeal } from "@/components/dashboard/compliance-seal";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
+import { sharePath } from "@/lib/share";
 import { AutoRefresh } from "./auto-refresh";
 
 const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
@@ -87,6 +89,7 @@ export default async function LaudoPage({
             dataInspecao={extracao.dataInspecao}
           />
           <NcList equipamentos={extracao.equipamentos} />
+          <ComplianceSeal dataInspecao={extracao.dataInspecao} />
         </>
       ) : null}
 
@@ -100,18 +103,31 @@ export default async function LaudoPage({
       ) : null}
 
       {laudo.status === "publicado" ? (
-        <div className="space-y-1 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
-          <p className="font-medium">Revisado e assinado</p>
-          <p>
-            {laudo.assinanteNome}
-            {laudo.assinanteCrea ? ` · ${laudo.assinanteCrea}` : ""}
-            {laudo.publicadoEm
-              ? ` · ${laudo.publicadoEm.toLocaleDateString("pt-BR")}`
-              : ""}
-          </p>
-          <p className="text-green-800/80">
-            O dashboard e o link público chegam no P3/P4.
-          </p>
+        <div className="space-y-3 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
+          <div className="space-y-1">
+            <p className="font-medium">Revisado e assinado</p>
+            <p>
+              {laudo.assinanteNome}
+              {laudo.assinanteCrea ? ` · ${laudo.assinanteCrea}` : ""}
+              {laudo.publicadoEm
+                ? ` · ${laudo.publicadoEm.toLocaleDateString("pt-BR")}`
+                : ""}
+            </p>
+          </div>
+          {laudo.shareToken ? (
+            <div className="space-y-1 border-t border-green-300 pt-3">
+              <p className="font-medium">Link público para o síndico</p>
+              <p className="text-green-800/80">
+                Sem login — quem tem o link vê o laudo. Mande no WhatsApp.
+              </p>
+              <a
+                href={sharePath(laudo.shareToken)}
+                className="block truncate font-mono text-xs break-all text-green-900 underline"
+              >
+                {sharePath(laudo.shareToken)}
+              </a>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </main>
