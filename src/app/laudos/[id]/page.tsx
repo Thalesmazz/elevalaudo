@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { StatusHero } from "@/components/dashboard/status-hero";
@@ -128,6 +129,13 @@ export default async function LaudoPage({
                 className="block truncate font-mono text-xs break-all text-green-900 underline"
               >
                 {sharePath(laudo.shareToken)}
+              </a>
+              <a
+                href={`${sharePath(laudo.shareToken)}/pdf`}
+                className="inline-flex w-fit items-center gap-2 rounded-lg border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-900 transition-colors hover:bg-green-100"
+              >
+                <Download className="size-3.5" strokeWidth={2} />
+                Baixar PDF branded
               </a>
             </div>
           ) : null}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Download } from "lucide-react";
 
 import { StatusHero } from "@/components/dashboard/status-hero";
 import { NcList } from "@/components/dashboard/nc-list";
@@ -66,6 +66,16 @@ export default async function LaudoPublicoPage({
           {extracao.predio.nome}
         </h1>
       </div>
+
+      {/* PDF branded self-contained (P4): o síndico baixa e guarda/imprime, sem
+          login. attachment no route handler força o download do arquivo. */}
+      <a
+        href={`/r/${token}/pdf`}
+        className="inline-flex w-fit items-center gap-2 rounded-lg border border-input bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+      >
+        <Download className="size-4" strokeWidth={2} />
+        Baixar PDF do laudo
+      </a>
 
       <StatusHero
         status={extracao.statusGeral}
