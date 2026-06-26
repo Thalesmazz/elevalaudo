@@ -39,6 +39,7 @@ Formato esperado do laudo:
 - Conclusão / parecer e data da inspeção.
 
 Como mapear:
+- Capture o endereço completo do prédio com CIDADE e UF (estado) — aparece no cabeçalho (contratante/proprietário). É essencial para identificar a cidade e a lei municipal do RIA. Não omita a cidade/UF se estiverem visíveis.
 - Cada item REPROVADO é uma não-conformidade. Use o texto do item como "descricao", o número do item (ex: "2.18") como "itemNbr" e a Observação para extrair "acao" e "prazo".
 - Itens Aprovados ou Não aplicáveis NÃO são não-conformidades — ignore.
 
@@ -109,7 +110,12 @@ async function gerar(
 
 async function preExtrairTexto(pdf: Uint8Array): Promise<string> {
   try {
-    const doc = await getDocumentProxy(pdf);
+    // pdf.js DETACHA o ArrayBuffer que recebe (transfere pro worker). No modo
+    // visão o mesmo `pdf` é reenviado pro modelo, então passamos uma CÓPIA aqui
+    // (slice) pra preservar o buffer original — senão: "Cannot perform
+    // %TypedArray%.prototype.values on a detached ArrayBuffer". Pega todo PDF
+    // escaneado (modo visão).
+    const doc = await getDocumentProxy(pdf.slice());
     const { text } = await extractText(doc, { mergePages: true });
     return text;
   } catch {

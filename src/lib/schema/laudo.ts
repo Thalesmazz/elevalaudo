@@ -82,7 +82,9 @@ export const predioSchema = z.object({
   endereco: z
     .string()
     .optional()
-    .describe("Endereço do prédio, se constar no laudo. Ausente → omitir."),
+    .describe(
+      "Endereço completo do prédio INCLUINDO cidade e UF/estado (ex: 'Av. Fernando Ferrari, 1900, Aeroporto, Vitória - ES'). Costuma estar no cabeçalho. É usado para identificar a lei municipal do RIA, então capture cidade e UF sempre que aparecerem. Ausente → omitir.",
+    ),
 });
 
 export const produtorSchema = z.object({
