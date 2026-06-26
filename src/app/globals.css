@@ -118,3 +118,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Semáforo: respiro do disco aceso. Só opacity (GPU-safe), e nunca sob
+   prefers-reduced-motion — o estado continua legível parado. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes status-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.72;
+    }
+  }
+  .status-lamp-on {
+    animation: status-breathe 2.4s ease-in-out infinite;
+  }
+}

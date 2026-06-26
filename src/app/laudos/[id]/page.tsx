@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 
 import { Button } from "@/components/ui/button";
+import { StatusHero } from "@/components/dashboard/status-hero";
+import { NcList } from "@/components/dashboard/nc-list";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { AutoRefresh } from "./auto-refresh";
@@ -42,9 +44,15 @@ export default async function LaudoPage({
       (n, eq) => n + eq.naoConformidades.length,
       0,
     ) ?? 0;
+  const urgentes =
+    extracao?.equipamentos.reduce(
+      (n, eq) =>
+        n + eq.naoConformidades.filter((nc) => nc.severidade === "urgente").length,
+      0,
+    ) ?? 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-16">
       {laudo.status === "extraindo" ? <AutoRefresh /> : null}
 
       <div className="space-y-1">
@@ -69,26 +77,17 @@ export default async function LaudoPage({
       </div>
 
       {extracao ? (
-        <div className="space-y-2 rounded-lg border border-input p-4 text-sm">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Extração (rascunho — dashboard vem no P3)
-          </p>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-            <dt className="text-muted-foreground">Prédio</dt>
-            <dd>{extracao.predio.nome}</dd>
-            <dt className="text-muted-foreground">Responsável</dt>
-            <dd>
-              {extracao.produtor.nome}
-              {extracao.produtor.crea ? ` · ${extracao.produtor.crea}` : ""}
-            </dd>
-            <dt className="text-muted-foreground">Status geral</dt>
-            <dd>{extracao.statusGeral}</dd>
-            <dt className="text-muted-foreground">Equipamentos</dt>
-            <dd>{extracao.equipamentos.length}</dd>
-            <dt className="text-muted-foreground">Não-conformidades</dt>
-            <dd>{totalNc}</dd>
-          </dl>
-        </div>
+        <>
+          <StatusHero
+            status={extracao.statusGeral}
+            predio={extracao.predio.nome}
+            totalNc={totalNc}
+            urgentes={urgentes}
+            equipamentos={extracao.equipamentos.length}
+            dataInspecao={extracao.dataInspecao}
+          />
+          <NcList equipamentos={extracao.equipamentos} />
+        </>
       ) : null}
 
       {laudo.status === "revisar" ? (

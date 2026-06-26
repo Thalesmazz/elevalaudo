@@ -40,3 +40,6 @@ docs/.trash/
 # vault privado — memoria interna, NAO publicar
 docs/
 CLAUDE.md
+
+# build info
+tsconfig.tsbuildinfo
