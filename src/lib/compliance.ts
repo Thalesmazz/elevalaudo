@@ -35,22 +35,69 @@ export type CidadeCompliance = {
   /**
    * Multa estimada por não emitir/enviar o RIA, como texto. SEMPRE exibida como
    * estimativa — valores variam por cidade e mudam (confirmar com a prefeitura).
+   * OPCIONAL: só preenchemos onde o valor está documentado. Cidade sem valor
+   * conhecido → não inventamos (NEVER-DO), o card manda confirmar na prefeitura.
    */
-  multaEstimada: string;
+  multaEstimada?: string;
+  /** Trechos (UPPERCASE) que, se aparecem no endereço do laudo, casam a cidade. */
+  matchers: string[];
 };
 
+/** Validade anual do RIA quando a cidade não é reconhecida (NBR = inspeção anual). */
+export const VALIDADE_PADRAO_MESES = 12;
+
 /**
- * Cidade do design partner (MVP = 1 cidade). São Paulo tem o valor de multa
- * documentado no domínio (~R$ 854 a R$ 930, sujeito a confirmação).
+ * São Paulo tem o valor de multa documentado no domínio (~R$ 854 a R$ 930,
+ * sujeito a confirmação).
  */
-export const CIDADE_PADRAO: CidadeCompliance = {
+const SAO_PAULO: CidadeCompliance = {
   id: "sao-paulo",
   cidade: "São Paulo",
   uf: "SP",
   lei: "Lei Municipal 10.348",
   validadeMeses: 12,
   multaEstimada: "R$ 854 a R$ 930",
+  matchers: ["SÃO PAULO", "SAO PAULO"],
 };
+
+/**
+ * Vitória-ES — RIA pelo Art. 40 da Lei 4.821/98 (consta no cabeçalho do laudo
+ * do design partner). Multa NÃO documentada → omitida de propósito; o card
+ * pede confirmação na prefeitura em vez de chutar valor.
+ */
+const VITORIA_ES: CidadeCompliance = {
+  id: "vitoria-es",
+  cidade: "Vitória",
+  uf: "ES",
+  lei: "Lei Municipal 4.821/98 (Art. 40)",
+  validadeMeses: 12,
+  matchers: ["VITÓRIA", "VITORIA"],
+};
+
+/** Cidades suportadas. Cresce conforme entram novos design partners. */
+export const CIDADES: CidadeCompliance[] = [SAO_PAULO, VITORIA_ES];
+
+/** Mantido por compatibilidade; é só o primeiro da lista. */
+export const CIDADE_PADRAO = SAO_PAULO;
+
+/**
+ * Resolve a cidade do laudo a partir do endereço do prédio. Casa por nome da
+ * cidade ou pelo token da UF (" ES", "- ES", "/ES"). Não reconheceu → undefined
+ * (o card cai no modo honesto, sem afirmar lei de outra cidade — liability).
+ */
+export function resolverCidade(
+  endereco?: string,
+): CidadeCompliance | undefined {
+  if (!endereco) return undefined;
+  const up = endereco.toUpperCase();
+  return CIDADES.find(
+    (c) =>
+      c.matchers.some((m) => up.includes(m)) ||
+      [` ${c.uf}`, `-${c.uf}`, `/${c.uf}`, `- ${c.uf}`].some((t) =>
+        up.includes(t),
+      ),
+  );
+}
 
 export type RiaStatus = "emDia" | "vencendo" | "vencido" | "semData";
 
@@ -107,7 +154,8 @@ export const riaStatusConfig: Record<RiaStatus, RiaStatusEntry> = {
 };
 
 export type ComplianceEstimativa = {
-  cidade: CidadeCompliance;
+  /** Cidade reconhecida do laudo, ou `undefined` (município não identificado). */
+  cidade?: CidadeCompliance;
   status: RiaStatus;
   /** Data de vencimento estimada (inspeção + validade), pt-BR, se houver data. */
   vencimentoLabel?: string;
@@ -141,21 +189,30 @@ function addMeses(base: Date, meses: number): Date {
  */
 export function estimarCompliance(
   dataInspecao: string | undefined,
-  cidade: CidadeCompliance = CIDADE_PADRAO,
+  cidade?: CidadeCompliance,
   hoje: Date = new Date(),
 ): ComplianceEstimativa {
   const inspecao = dataInspecao ? parseDataBr(dataInspecao) : null;
+
+  // Referência da regra: cita a lei se reconhecemos a cidade; senão, fala
+  // genérico (NUNCA afirma a lei de outra cidade) e pede confirmação.
+  const ref = cidade ? `Pela ${cidade.lei}, ` : "Pela inspeção anual, ";
+  const notaMunicipio = cidade
+    ? ""
+    : " A obrigação e o prazo do RIA variam por município — confirme com a prefeitura.";
 
   if (!inspecao) {
     return {
       cidade,
       status: "semData",
       resumo:
-        "O laudo não traz a data de inspeção, então não dá para estimar o prazo do RIA. Confirme com o responsável técnico.",
+        "O laudo não traz a data de inspeção, então não dá para estimar o prazo do RIA. Confirme com o responsável técnico." +
+        notaMunicipio,
     };
   }
 
-  const vencimento = addMeses(inspecao, cidade.validadeMeses);
+  const validadeMeses = cidade?.validadeMeses ?? VALIDADE_PADRAO_MESES;
+  const vencimento = addMeses(inspecao, validadeMeses);
   const diasRestantes = Math.floor(
     (vencimento.getTime() - hoje.getTime()) / MS_DIA,
   );
@@ -167,13 +224,13 @@ export function estimarCompliance(
   if (diasRestantes < 0) {
     status = "vencido";
     const atraso = Math.abs(diasRestantes);
-    resumo = `Pela ${cidade.lei}, estima-se que o RIA venceu há ${atraso} dia${atraso === 1 ? "" : "s"} (${vencimentoLabel}). Recomenda-se nova inspeção e envio à prefeitura.`;
+    resumo = `${ref}estima-se que o RIA venceu há ${atraso} dia${atraso === 1 ? "" : "s"} (${vencimentoLabel}). Recomenda-se nova inspeção e envio à prefeitura.${notaMunicipio}`;
   } else if (diasRestantes <= JANELA_VENCENDO_DIAS) {
     status = "vencendo";
-    resumo = `Pela ${cidade.lei}, estima-se que o RIA vence em ${diasRestantes} dia${diasRestantes === 1 ? "" : "s"} (${vencimentoLabel}). Vale agendar a renovação.`;
+    resumo = `${ref}estima-se que o RIA vence em ${diasRestantes} dia${diasRestantes === 1 ? "" : "s"} (${vencimentoLabel}). Vale agendar a renovação.${notaMunicipio}`;
   } else {
     status = "emDia";
-    resumo = `Pela ${cidade.lei}, estima-se que o RIA segue válido até ${vencimentoLabel}.`;
+    resumo = `${ref}estima-se que o RIA segue válido até ${vencimentoLabel}.${notaMunicipio}`;
   }
 
   return { cidade, status, vencimentoLabel, diasRestantes, resumo };

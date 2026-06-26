@@ -76,7 +76,10 @@ export default async function LaudoPublicoPage({
         dataInspecao={extracao.dataInspecao}
       />
       <NcList equipamentos={extracao.equipamentos} />
-      <ComplianceSeal dataInspecao={extracao.dataInspecao} />
+      <ComplianceSeal
+        dataInspecao={extracao.dataInspecao}
+        endereco={extracao.predio.endereco}
+      />
 
       {/* Quem revisou e assinou — fecha a confiança do síndico (ADR-002). */}
       <div className="flex items-start gap-2 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">

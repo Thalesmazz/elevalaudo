@@ -89,7 +89,10 @@ export default async function LaudoPage({
             dataInspecao={extracao.dataInspecao}
           />
           <NcList equipamentos={extracao.equipamentos} />
-          <ComplianceSeal dataInspecao={extracao.dataInspecao} />
+          <ComplianceSeal
+            dataInspecao={extracao.dataInspecao}
+            endereco={extracao.predio.endereco}
+          />
         </>
       ) : null}
 

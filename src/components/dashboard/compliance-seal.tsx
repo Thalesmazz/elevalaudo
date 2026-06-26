@@ -3,6 +3,7 @@ import { Building2, Info, Receipt, ScrollText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   estimarCompliance,
+  resolverCidade,
   riaStatusConfig,
   type CidadeCompliance,
 } from "@/lib/compliance";
@@ -22,6 +23,9 @@ import {
 
 type ComplianceSealProps = {
   dataInspecao?: string;
+  /** Endereço do prédio no laudo — resolve a cidade/lei aplicável. */
+  endereco?: string;
+  /** Override explícito da cidade (testes). Tem prioridade sobre o endereço. */
   cidade?: CidadeCompliance;
   /** Injetável para testes determinísticos (sandbox). */
   hoje?: Date;
@@ -29,12 +33,14 @@ type ComplianceSealProps = {
 
 export function ComplianceSeal({
   dataInspecao,
-  cidade,
+  endereco,
+  cidade: cidadeOverride,
   hoje,
 }: ComplianceSealProps) {
+  const cidade = cidadeOverride ?? resolverCidade(endereco);
   const est = estimarCompliance(dataInspecao, cidade, hoje);
   const cfg = riaStatusConfig[est.status];
-  const { cidade: city } = est;
+  const city = est.cidade;
 
   return (
     <section
@@ -55,10 +61,12 @@ export function ComplianceSeal({
                 className="size-5 shrink-0 text-muted-foreground"
                 strokeWidth={2}
               />
-              {city.cidade}
-              <span className="font-mono text-sm font-normal text-muted-foreground">
-                {city.uf}
-              </span>
+              {city?.cidade ?? "Município não identificado"}
+              {city ? (
+                <span className="font-mono text-sm font-normal text-muted-foreground">
+                  {city.uf}
+                </span>
+              ) : null}
             </h2>
           </div>
 
@@ -99,7 +107,7 @@ export function ComplianceSeal({
               )}
             </dd>
             <p className="mt-1 font-mono text-xs text-muted-foreground">
-              {city.lei}
+              {city?.lei ?? "Confirme a lei municipal aplicável"}
             </p>
           </div>
 
@@ -109,8 +117,17 @@ export function ComplianceSeal({
               Multa estimada
             </dt>
             <dd className="mt-1.5 text-sm text-foreground/90">
-              <span className="font-medium">{city.multaEstimada}</span>{" "}
-              <span className="text-muted-foreground">(estimado)</span>
+              {city?.multaEstimada ? (
+                <>
+                  <span className="font-medium">{city.multaEstimada}</span>{" "}
+                  <span className="text-muted-foreground">(estimado)</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">
+                  Sem valor documentado para este município — consulte a
+                  prefeitura
+                </span>
+              )}
             </dd>
             <p className="mt-1 text-xs text-muted-foreground">
               Por não emitir/enviar o RIA. Valor varia e muda.
