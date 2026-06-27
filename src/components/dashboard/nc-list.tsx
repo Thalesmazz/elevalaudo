@@ -1,19 +1,28 @@
-import { BookMarked, Clock, Wrench } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { BookMarked, Clock, User, Wrench } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { severidadeConfig } from "@/lib/status";
 import type { Equipamento, NaoConformidade } from "@/lib/schema/laudo";
 
 /**
- * Lista de não-conformidades rankeada (P3 `dashboard-nc-ranked`).
+ * Lista de não-conformidades rankeada (P3 `dashboard-nc-ranked`) com toggle
+ * síndico ⇄ técnico (P5 `toggle-sindico-tecnico`).
  *
  * Ordena urgente → atenção → leve (o que importa primeiro fica no topo). Cada
  * NC traz o badge de severidade (reusa `severidadeConfig` do hero) e o item da
  * NBR 16858, quando o laudo cita. A barra lateral colorida dá o ranking visual.
  *
- * Leitura principal = `plainPt` (PT de gente, modo síndico); a `descricao`
- * técnica fica secundária. Rodapé traz a `acao` corretiva e o `prazo` do laudo
- * (prazo só quando informado — nunca estimado, ADR-003).
+ * Toggle (P5): mesma data, duas leituras. **Síndico** = `plainPt` (PT de gente,
+ * zero jargão) em primeiro plano, com a descrição do laudo como apoio.
+ * **Técnico** = `descricao` do laudo em primeiro plano (jargão + item NBR em
+ * destaque), com o plain-PT como apoio. Os dois textos já vêm no dado — o toggle
+ * só escolhe qual exibir, sem chamada nova ao servidor (`useState`).
+ *
+ * Rodapé traz a `acao` corretiva e o `prazo` do laudo (prazo só quando
+ * informado — nunca estimado, ADR-003).
  */
 
 const RANK: Record<NaoConformidade["severidade"], number> = {
@@ -28,9 +37,19 @@ const ACCENT: Record<NaoConformidade["severidade"], string> = {
   leve: "border-l-zinc-300 dark:border-l-zinc-600",
 };
 
+type ViewMode = "sindico" | "tecnico";
+
 type RankedNc = NaoConformidade & { equipamento: string };
 
+const MODES: { value: ViewMode; label: string; Icon: typeof User }[] = [
+  { value: "sindico", label: "Síndico", Icon: User },
+  { value: "tecnico", label: "Técnico", Icon: Wrench },
+];
+
 export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
+  const [mode, setMode] = useState<ViewMode>("sindico");
+  const tecnico = mode === "tecnico";
+
   const ncs: RankedNc[] = equipamentos
     .flatMap((eq) =>
       eq.naoConformidades.map((nc) => ({
@@ -52,18 +71,55 @@ export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
 
   return (
     <section aria-label="Não-conformidades">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-xl font-semibold tracking-tight">
-          Não-conformidades
-        </h2>
-        <span className="font-mono text-sm text-muted-foreground">
-          {ncs.length} no total
-        </span>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Não-conformidades
+          </h2>
+          <span className="font-mono text-sm text-muted-foreground">
+            {ncs.length} no total
+          </span>
+        </div>
+
+        {/* Toggle síndico ⇄ técnico (P5): segmented control. Só troca qual texto
+            fica em primeiro plano — os dois já estão no dado. */}
+        <div
+          role="group"
+          aria-label="Modo de leitura"
+          className="inline-flex shrink-0 rounded-full border border-border bg-muted p-0.5 text-xs font-medium"
+        >
+          {MODES.map((m) => {
+            const on = mode === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setMode(m.value)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors",
+                  on
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <m.Icon className="size-3.5" strokeWidth={2.25} />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <ol className="flex flex-col gap-3">
         {ncs.map((nc, i) => {
           const sev = severidadeConfig[nc.severidade];
+          const hasPlain = !!nc.plainPt?.trim();
+          // Texto principal segue o modo: técnico = descrição do laudo; síndico =
+          // plain-PT (com fallback pra descrição quando o laudo não tem resumo).
+          const primary = tecnico
+            ? nc.descricao
+            : nc.plainPt?.trim() || nc.descricao;
           return (
             <li
               key={i}
@@ -84,7 +140,15 @@ export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
                 </span>
 
                 {nc.itemNbr ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 font-mono text-xs text-muted-foreground">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-xs",
+                      // No modo técnico o item da NBR vira referência de destaque.
+                      tecnico
+                        ? "bg-foreground/10 text-foreground ring-1 ring-inset ring-border"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
                     <BookMarked className="size-3.5" strokeWidth={2} />
                     {nc.itemNbr}
                   </span>
@@ -97,17 +161,19 @@ export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
                 ) : null}
               </div>
 
-              {/* Modo síndico: o plain-PT é a leitura principal (zero jargão).
-                  A descrição técnica do laudo fica secundária (vira o "modo
-                  técnico" no toggle do P5). */}
+              {/* Leitura principal conforme o toggle. */}
               <p className="mt-2.5 text-base leading-relaxed font-medium text-foreground">
-                {nc.plainPt?.trim() || nc.descricao}
+                {primary}
               </p>
 
-              {nc.plainPt?.trim() ? (
+              {/* Leitura de apoio: a outra forma do mesmo problema. Só quando há
+                  plain-PT (senão os dois textos seriam iguais). */}
+              {hasPlain ? (
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-medium">No laudo: </span>
-                  {nc.descricao}
+                  <span className="font-medium">
+                    {tecnico ? "Em PT de gente: " : "No laudo: "}
+                  </span>
+                  {tecnico ? nc.plainPt : nc.descricao}
                 </p>
               ) : null}
 
