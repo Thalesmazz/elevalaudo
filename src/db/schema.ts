@@ -57,3 +57,36 @@ export const laudos = pgTable("laudos", {
 
 export type Laudo = typeof laudos.$inferSelect;
 export type NovoLaudo = typeof laudos.$inferInsert;
+
+// Branding white-label do produtor (P4 `producer-branding`): logo + cor da
+// consultoria, aplicados no dashboard, link público e PDF — o laudo fica com a
+// cara do produtor, não do ElevaLaudo. MVP é singleton (1 design partner, sem
+// auth): existe no máximo uma linha, lida por `getBranding()`. NEVER-DO: nada
+// de multi-tenant/RBAC no MVP — quando entrar login, isto vira FK por produtor.
+export const producers = pgTable("producers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // Nome da consultoria/empresa do produtor (aparece no PDF quando não há logo).
+  nome: text("nome"),
+
+  // Logo no Vercel Blob PÚBLICO (não é dado sensível de cliente; o PDF e o
+  // dashboard precisam carregar a imagem por URL — react-pdf busca via rede).
+  logoUrl: text("logo_url"),
+  logoPathname: text("logo_pathname"),
+
+  // Cor primária da marca, hex (#rrggbb). Vira a CSS var `--brand` no dashboard
+  // e o acento da capa no PDF. Nunca toca nas cores RAG do semáforo (honestidade
+  // visual > marca).
+  corPrimaria: text("cor_primaria"),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export type Producer = typeof producers.$inferSelect;
+export type NovoProducer = typeof producers.$inferInsert;

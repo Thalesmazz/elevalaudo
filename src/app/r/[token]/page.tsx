@@ -6,8 +6,10 @@ import { BadgeCheck, Download } from "lucide-react";
 import { StatusHero } from "@/components/dashboard/status-hero";
 import { NcList } from "@/components/dashboard/nc-list";
 import { ComplianceSeal } from "@/components/dashboard/compliance-seal";
+import { BrandHeader } from "@/components/dashboard/brand-header";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
+import { getBranding } from "@/lib/branding";
 
 // Link público compartilhado (P4, ADR-006). Privacidade > indexação: o laudo
 // nunca pode cair no Google. `noindex, nofollow` na rota inteira. Também sem
@@ -45,6 +47,7 @@ export default async function LaudoPublicoPage({
   // se o laudo existe.
   if (!laudo || !laudo.extracao) notFound();
 
+  const branding = await getBranding();
   const extracao = laudo.extracao;
   const totalNc = extracao.equipamentos.reduce(
     (n, eq) => n + eq.naoConformidades.length,
@@ -58,6 +61,8 @@ export default async function LaudoPublicoPage({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-16">
+      <BrandHeader branding={branding} />
+
       <div className="space-y-1">
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Laudo do elevador

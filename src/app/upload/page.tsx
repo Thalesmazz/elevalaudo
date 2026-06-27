@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, Palette } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { uploadLaudo, type UploadState } from "./actions";
@@ -61,6 +62,14 @@ export default function UploadPage() {
           )}
         </Button>
       </form>
+
+      <Link
+        href="/produtor"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <Palette className="size-4" />
+        Personalizar a marca da sua consultoria
+      </Link>
     </main>
   );
 }

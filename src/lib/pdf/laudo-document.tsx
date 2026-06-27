@@ -1,5 +1,6 @@
 import {
   Document,
+  Image,
   Page,
   Text,
   View,
@@ -9,6 +10,18 @@ import {
 import type { Laudo } from "@/db/schema";
 import type { LaudoExtraido, NaoConformidade } from "@/lib/schema/laudo";
 import { estimarCompliance, resolverCidade } from "@/lib/compliance";
+
+/**
+ * Branding do PDF (P4 `producer-branding`). Diferente do `Branding` do app: o
+ * render é server-side e o Blob é privado, então a logo chega como data-URI
+ * (bytes embutidos), não como URL — react-pdf não busca rota same-origin.
+ */
+export type PdfBranding = {
+  nome: string | null;
+  corPrimaria: string | null;
+  /** Logo como data-URI (`data:image/png;base64,…`) ou null. */
+  logoSrc?: string | null;
+};
 
 /**
  * PDF branded self-contained do laudo (P4 `branded-pdf-export`).
@@ -99,6 +112,9 @@ const styles = StyleSheet.create({
   },
 
   // Marca
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  brandLogo: { maxHeight: 26, maxWidth: 150, objectFit: "contain" },
+  brandName: { fontSize: 12, fontFamily: "Helvetica-Bold", color: C.ink },
   wordmark: { fontSize: 13, fontFamily: "Helvetica-Bold", color: C.ink },
   wordmarkEleva: { color: C.ink },
   wordmarkLaudo: { color: C.muted },
@@ -341,13 +357,35 @@ function Wordmark() {
   );
 }
 
+/**
+ * Marca da capa (P4 `producer-branding`): logo do produtor se houver, senão o
+ * nome, com fallback no wordmark ElevaLaudo. White-label — o laudo carrega a
+ * marca do produtor; o ElevaLaudo recua pro rodapé ("gerado por").
+ */
+function CoverBrand({ branding }: { branding?: PdfBranding }) {
+  if (branding?.logoSrc) {
+    // data-URI (bytes embutidos) — react-pdf desenha sem ir à rede.
+    // (alt-text é regra de <img> HTML; o <Image> do react-pdf vira PDF.)
+    // eslint-disable-next-line jsx-a11y/alt-text
+    return <Image src={branding.logoSrc} style={styles.brandLogo} />;
+  }
+  if (branding?.nome) {
+    return <Text style={styles.brandName}>{branding.nome}</Text>;
+  }
+  return <Wordmark />;
+}
+
 export function LaudoDocument({
   laudo,
   extracao,
+  branding,
 }: {
   laudo: Pick<Laudo, "assinanteNome" | "assinanteCrea" | "publicadoEm">;
   extracao: LaudoExtraido;
+  branding?: PdfBranding;
 }) {
+  // Cor da marca tinge só o filete da capa (acento) — nunca as cores RAG.
+  const brandColor = branding?.corPrimaria ?? undefined;
   const ncs: RankedNc[] = extracao.equipamentos
     .flatMap((eq) =>
       eq.naoConformidades.map((nc) => ({ ...nc, equipamento: eq.identificacao })),
@@ -390,8 +428,13 @@ export function LaudoDocument({
     >
       {/* ── Capa ── */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.coverTopRule}>
-          <Wordmark />
+        <View
+          style={[
+            styles.coverTopRule,
+            brandColor ? { borderTopColor: brandColor } : {},
+          ]}
+        >
+          <CoverBrand branding={branding} />
           <Text style={styles.kicker}>Laudo de Inspeção</Text>
         </View>
 
