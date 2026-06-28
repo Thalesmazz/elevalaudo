@@ -194,14 +194,21 @@ export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
                 {nc.prazo ? (
                   <span
                     className={cn(
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
+                      // sem shrink-0 + quebra de linha: prazo longo (ex. frase do
+                      // laudo) não estoura o card, vira "tag" que envolve o texto.
+                      "inline-flex max-w-full items-start gap-1.5 rounded-2xl px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
                       nc.severidade === "urgente"
                         ? severidadeConfig.urgente.pill
                         : "bg-muted text-muted-foreground ring-transparent",
                     )}
                   >
-                    <Clock className="size-3.5" strokeWidth={2.25} />
-                    Prazo: {nc.prazo}
+                    <Clock
+                      className="mt-px size-3.5 shrink-0"
+                      strokeWidth={2.25}
+                    />
+                    <span className="min-w-0 break-words">
+                      Prazo: {nc.prazo}
+                    </span>
                   </span>
                 ) : null}
               </div>
