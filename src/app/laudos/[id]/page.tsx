@@ -8,6 +8,7 @@ import { StatusHero } from "@/components/dashboard/status-hero";
 import { NcList } from "@/components/dashboard/nc-list";
 import { ComplianceSeal } from "@/components/dashboard/compliance-seal";
 import { BrandHeader } from "@/components/dashboard/brand-header";
+import { LaudoChat } from "@/components/dashboard/laudo-chat";
 import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { getBranding } from "@/lib/branding";
@@ -99,6 +100,7 @@ export default async function LaudoPage({
             dataInspecao={extracao.dataInspecao}
             endereco={extracao.predio.endereco}
           />
+          <LaudoChat api={`/api/laudos/${id}/chat`} />
         </>
       ) : null}
 
