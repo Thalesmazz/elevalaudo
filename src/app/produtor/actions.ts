@@ -29,6 +29,14 @@ export async function salvarBranding(
   const nomeRaw = (formData.get("nome") as string | null)?.trim() ?? "";
   const nome = nomeRaw.slice(0, 120) || null;
 
+  // Email do alerta de prazo do RIA (P5 `alerta-prazo-ria-email`). Vazio = não
+  // receber; preenchido precisa ter cara de email (validação leve, MVP).
+  const emailRaw = (formData.get("email") as string | null)?.trim() ?? "";
+  if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+    return { erro: "Email inválido." };
+  }
+  const email = emailRaw.slice(0, 200) || null;
+
   const corRaw = (formData.get("corPrimaria") as string | null) ?? "";
   // Campo vazio = limpar a cor; valor preenchido precisa ser hex válido.
   const cor = corRaw.trim() ? normalizeHexColor(corRaw) : null;
@@ -64,7 +72,7 @@ export async function salvarBranding(
 
   await db
     .update(producers)
-    .set({ nome, corPrimaria: cor, logoUrl, logoPathname })
+    .set({ nome, email, corPrimaria: cor, logoUrl, logoPathname })
     .where(eq(producers.id, producer.id));
 
   // O branding aparece no dashboard e nos links públicos — revalida tudo.

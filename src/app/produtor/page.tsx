@@ -34,6 +34,7 @@ export default async function ProdutorPage() {
 
       <BrandingForm
         nome={producer.nome ?? ""}
+        email={producer.email ?? ""}
         corPrimaria={normalizeHexColor(producer.corPrimaria) ?? ""}
         logoSrc={
           producer.logoPathname

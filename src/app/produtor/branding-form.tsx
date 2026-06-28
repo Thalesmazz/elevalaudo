@@ -10,10 +10,12 @@ const initialState: BrandingState = {};
 
 export function BrandingForm({
   nome,
+  email,
   corPrimaria,
   logoSrc,
 }: {
   nome: string;
+  email: string;
   corPrimaria: string;
   logoSrc: string | null;
 }) {
@@ -97,6 +99,27 @@ export function BrandingForm({
         />
         <p className="text-xs text-muted-foreground">
           Aparece no PDF quando não há logo.
+        </p>
+      </div>
+
+      {/* Email — destinatário do alerta de prazo do RIA */}
+      <div className="space-y-2">
+        <label htmlFor="email" className="block text-sm font-medium">
+          Email para alertas
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          defaultValue={email}
+          maxLength={200}
+          disabled={pending}
+          placeholder="voce@consultoria.com.br"
+          className="block w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <p className="text-xs text-muted-foreground">
+          Avisamos por aqui quando o RIA de um laudo está vencendo ou vencido.
+          Deixe em branco para não receber.
         </p>
       </div>
 

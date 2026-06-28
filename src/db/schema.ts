@@ -77,6 +77,11 @@ export const producers = pgTable("producers", {
   // Nome da consultoria/empresa do produtor (aparece no PDF quando não há logo).
   nome: text("nome"),
 
+  // Email do produtor — destinatário do alerta de prazo do RIA (P5
+  // `alerta-prazo-ria-email`, ADR-008). Singleton/MVP: 1 destinatário, sem auth.
+  // Nullable: sem email → o cron não dispara (fallback de teste: ALERTA_EMAIL_TO).
+  email: text("email"),
+
   // Logo no Vercel Blob PÚBLICO (não é dado sensível de cliente; o PDF e o
   // dashboard precisam carregar a imagem por URL — react-pdf busca via rede).
   logoUrl: text("logo_url"),
