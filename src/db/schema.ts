@@ -46,6 +46,14 @@ export const laudos = pgTable("laudos", {
   // URL além do token.
   shareToken: text("share_token").unique(),
 
+  // Chave de agrupamento do prédio para a timeline multi-laudo (P5
+  // `equipamento-timeline`, ADR-007). Slug normalizado de `predio.nome`
+  // (slugifyPredio em `lib/timeline.ts`), gravado ao PUBLICAR — congela a partir
+  // de um nome já revisado pelo RT (human-in-the-loop), em vez de recalcular OCR
+  // cru a cada query. Nullable: laudo em extraindo/revisar ainda não tem chave;
+  // só `publicado` entra na timeline (guardrail de liability, ADR-002).
+  predioKey: text("predio_key"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

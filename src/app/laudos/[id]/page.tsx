@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Download } from "lucide-react";
+import { Download, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { StatusHero } from "@/components/dashboard/status-hero";
@@ -13,6 +13,8 @@ import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { getBranding } from "@/lib/branding";
 import { sharePath } from "@/lib/share";
+import { slugifyPredio } from "@/lib/timeline";
+import { contarPublicadosDoPredios } from "@/lib/timeline-db";
 import { AutoRefresh } from "./auto-refresh";
 
 const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
@@ -58,6 +60,18 @@ export default async function LaudoPage({
       0,
     ) ?? 0;
 
+  // Timeline multi-laudo (P5, ADR-007): a chave do prédio congela no publish;
+  // pra laudo ainda em revisão, deriva do nome extraído só pra checar histórico.
+  // Só oferece o link quando há ≥2 laudos PUBLICADOS do mesmo prédio (senão é
+  // "foto", não "filme").
+  const predioKey =
+    laudo.predioKey ??
+    (extracao ? slugifyPredio(extracao.predio.nome) : null);
+  const laudosDoPredios = predioKey
+    ? await contarPublicadosDoPredios(predioKey)
+    : 0;
+  const temHistorico = predioKey !== null && laudosDoPredios >= 2;
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-16">
       {laudo.status === "extraindo" ? <AutoRefresh /> : null}
@@ -100,6 +114,26 @@ export default async function LaudoPage({
             dataInspecao={extracao.dataInspecao}
             endereco={extracao.predio.endereco}
           />
+          {temHistorico && predioKey ? (
+            <Link
+              href={`/predios/${predioKey}`}
+              className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <History className="size-4.5 text-foreground" strokeWidth={2} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">
+                  Ver histórico do prédio
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {laudosDoPredios} laudos publicados — evolução das
+                  não-conformidades no tempo
+                </span>
+              </span>
+            </Link>
+          ) : null}
+
           <LaudoChat api={`/api/laudos/${id}/chat`} />
         </>
       ) : null}

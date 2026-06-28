@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { laudos } from "@/db/schema";
 import { laudoSchema } from "@/lib/schema/laudo";
 import { generateShareToken } from "@/lib/share";
+import { slugifyPredio } from "@/lib/timeline";
 
 export type AprovarInput = {
   id: string;
@@ -64,6 +65,10 @@ export async function aprovarLaudo(
       // Gera o link público ao publicar (P4, ADR-006). Reusa o token se já
       // existe — re-publicar não muda a URL que o síndico já recebeu.
       shareToken: laudo.shareToken ?? generateShareToken(),
+      // Chave de agrupamento da timeline (P5, ADR-007): congela a partir do nome
+      // do prédio JÁ REVISADO pelo RT, não de OCR cru. Recalcula a cada publish
+      // (se o RT corrige o nome, a chave acompanha).
+      predioKey: slugifyPredio(parsed.data.predio.nome),
     })
     .where(eq(laudos.id, input.id));
 
