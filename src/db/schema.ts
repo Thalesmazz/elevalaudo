@@ -54,6 +54,16 @@ export const laudos = pgTable("laudos", {
   // só `publicado` entra na timeline (guardrail de liability, ADR-002).
   predioKey: text("predio_key"),
 
+  // Dono da extração (quem subiu o PDF logado) e a empresa/cliente sob a qual
+  // ela foi feita. NULLABLE de propósito: os laudos/seed legados (anteriores ao
+  // login) não têm vínculo — o app continua lendo todos eles. Novos uploads
+  // gravam ambos. A lateral agrupa por `empresaId`; "Meus laudos" filtra/não por
+  // `userId` conforme a tela.
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  empresaId: uuid("empresa_id").references(() => empresas.id, {
+    onDelete: "set null",
+  }),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -103,3 +113,91 @@ export const producers = pgTable("producers", {
 
 export type Producer = typeof producers.$inferSelect;
 export type NovoProducer = typeof producers.$inferInsert;
+
+// Perfil de quem loga. Por enquanto é só IDENTIFICAÇÃO (sem RBAC): engenheiro e
+// gestor veem o mesmo app — o perfil serve pra saber quem está logado e popular
+// a lateral. "gestor" cobre síndico/administradora/zelador (nome neutro, melhor
+// que "síndico"). Quando entrar permissão fina, isto vira o gancho do guard.
+export const userRole = pgEnum("user_role", ["engenheiro", "gestor"]);
+
+// Usuário logado (auth email+senha). Antes o app era singleton sem login; agora
+// `laudos.userId`/`empresas.ownerUserId` referenciam aqui. `senhaHash` é scrypt
+// com salt embutido (lib/auth/password.ts) — NUNCA guardar senha em claro.
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nome: text("nome").notNull(),
+  email: text("email").notNull().unique(),
+  senhaHash: text("senha_hash").notNull(),
+  role: userRole("role").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type User = typeof users.$inferSelect;
+export type NovoUser = typeof users.$inferInsert;
+
+// Sessão por token opaco guardado em cookie httpOnly (`el_session`). O token é
+// aleatório (não-adivinhável); a validação lê esta tabela em vez de confiar num
+// JWT auto-assinado — assim dá pra revogar (logout = delete). `expiresAt` corta
+// sessão velha.
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Session = typeof sessions.$inferSelect;
+
+// Empresa/Cliente: entidade ACIMA do prédio. Um cliente (ex.: administradora,
+// rede de condomínios) pode ter vários prédios, e cada prédio vários laudos no
+// tempo. É o agrupamento da lateral (estilo "projeto" do Claude Code): empresa →
+// extrações. Pertence ao usuário que a criou (`ownerUserId`).
+export const empresas = pgTable("empresas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerUserId: uuid("owner_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  nome: text("nome").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Empresa = typeof empresas.$inferSelect;
+export type NovaEmpresa = typeof empresas.$inferInsert;
+
+// Conexão Engenheiro → Administração (P6 `conexao-engenheiro-adm`). O engenheiro
+// gera um CÓDIGO único (linha `pendente`, sem administração ainda); a
+// administração insere o código pra vincular as contas (vira `ativa`, com
+// `administracaoUserId` preenchido). A partir do vínculo, a administração
+// enxerga os laudos PUBLICADOS daquele engenheiro (em `/recebidos`) — read-only,
+// nunca edita (guardrail de liability + RBAC, ver lib/auth/roles.ts).
+export const conexaoStatus = pgEnum("conexao_status", ["pendente", "ativa"]);
+
+export const conexoes = pgTable("conexoes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  engenheiroUserId: uuid("engenheiro_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // Null enquanto o código não foi reivindicado; preenchido ao conectar.
+  administracaoUserId: uuid("administracao_user_id").references(
+    () => users.id,
+    { onDelete: "cascade" },
+  ),
+  codigo: text("codigo").notNull().unique(),
+  status: conexaoStatus("status").notNull().default("pendente"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  conectadoEm: timestamp("conectado_em", { withTimezone: true }),
+});
+
+export type Conexao = typeof conexoes.$inferSelect;
+export type NovaConexao = typeof conexoes.$inferInsert;

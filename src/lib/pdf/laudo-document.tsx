@@ -193,11 +193,13 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
 
-  // Seções (páginas internas)
+  // Seções (páginas internas). lineHeight explícito: sem ele o título herda o
+  // line-height absoluto do `page` (10*1.5≈15pt), menor que o glifo de 16pt.
   sectionTitle: {
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
     color: C.ink,
+    lineHeight: 1.2,
     marginBottom: 14,
   },
 
@@ -210,13 +212,21 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: 12,
   },
-  statNum: { fontSize: 22, fontFamily: "Helvetica-Bold", color: C.ink },
+  // lineHeight próprio (1.2 do PRÓPRIO fontSize) — sem ele o número herda o
+  // line-height absoluto do `page` (≈15pt), curto demais p/ o glifo de 22pt, e
+  // o `statCap` sobe por cima. É a causa do desalinhamento número↔rótulo.
+  statNum: {
+    fontSize: 22,
+    fontFamily: "Helvetica-Bold",
+    color: C.ink,
+    lineHeight: 1.2,
+  },
   statCap: {
     fontSize: 7.5,
     letterSpacing: 0.5,
     textTransform: "uppercase",
     color: C.muted,
-    marginTop: 2,
+    marginTop: 4,
   },
 
   complianceCard: {

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import { ProducerNav } from "@/components/producer-nav";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -38,7 +36,6 @@ export default function RootLayout({
         className="min-h-full flex flex-col"
         suppressHydrationWarning
       >
-        <ProducerNav />
         {children}
       </body>
     </html>

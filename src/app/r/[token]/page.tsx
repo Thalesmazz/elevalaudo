@@ -91,7 +91,12 @@ export default async function LaudoPublicoPage({
         equipamentos={extracao.equipamentos.length}
         dataInspecao={extracao.dataInspecao}
       />
-      <NcList equipamentos={extracao.equipamentos} />
+      {/* Link público = o síndico/consumidor: linguagem "PT de gente" fixa
+          (sem toggle técnico). */}
+      <NcList
+        equipamentos={extracao.equipamentos}
+        audiencia="sindico"
+      />
       <ComplianceSeal
         dataInspecao={extracao.dataInspecao}
         endereco={extracao.predio.endereco}

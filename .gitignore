@@ -28,6 +28,9 @@ pnpm-debug.log*
 .idea/
 .vscode/
 
+# tooling de agente (skills instaladas localmente) — mantém launch.json
+.claude/skills/
+
 # test / coverage
 coverage/
 

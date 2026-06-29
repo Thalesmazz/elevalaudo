@@ -1,25 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { BookMarked, Clock, User, Wrench } from "lucide-react";
+import { BookMarked, Clock, Wrench } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { severidadeConfig } from "@/lib/status";
 import type { Equipamento, NaoConformidade } from "@/lib/schema/laudo";
 
 /**
- * Lista de não-conformidades rankeada (P3 `dashboard-nc-ranked`) com toggle
- * síndico ⇄ técnico (P5 `toggle-sindico-tecnico`).
+ * Lista de não-conformidades rankeada (P3 `dashboard-nc-ranked`).
  *
  * Ordena urgente → atenção → leve (o que importa primeiro fica no topo). Cada
  * NC traz o badge de severidade (reusa `severidadeConfig` do hero) e o item da
  * NBR 16858, quando o laudo cita. A barra lateral colorida dá o ranking visual.
  *
- * Toggle (P5): mesma data, duas leituras. **Síndico** = `plainPt` (PT de gente,
- * zero jargão) em primeiro plano, com a descrição do laudo como apoio.
- * **Técnico** = `descricao` do laudo em primeiro plano (jargão + item NBR em
- * destaque), com o plain-PT como apoio. Os dois textos já vêm no dado — o toggle
- * só escolhe qual exibir, sem chamada nova ao servidor (`useState`).
+ * Linguagem fixada pelo papel do login (sem toggle): **Síndico/Administração** =
+ * `plainPt` (PT de gente, zero jargão) em primeiro plano, com a descrição do
+ * laudo como apoio. **Engenheiro** = `descricao` do laudo em primeiro plano
+ * (jargão + item NBR em destaque), com o plain-PT como apoio. Os dois textos já
+ * vêm no dado; a `audiencia` (derivada do papel) só escolhe qual fica em primeiro
+ * plano — o leigo não precisa virar chave nenhuma pra "técnico".
  *
  * Rodapé traz a `acao` corretiva e o `prazo` do laudo (prazo só quando
  * informado — nunca estimado, ADR-003).
@@ -41,14 +40,15 @@ type ViewMode = "sindico" | "tecnico";
 
 type RankedNc = NaoConformidade & { equipamento: string };
 
-const MODES: { value: ViewMode; label: string; Icon: typeof User }[] = [
-  { value: "sindico", label: "Síndico", Icon: User },
-  { value: "tecnico", label: "Técnico", Icon: Wrench },
-];
-
-export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
-  const [mode, setMode] = useState<ViewMode>("sindico");
-  const tecnico = mode === "tecnico";
+export function NcList({
+  equipamentos,
+  audiencia = "sindico",
+}: {
+  equipamentos: Equipamento[];
+  /** Linguagem — fixada pelo papel no login (engenheiro=técnico, demais=síndico). */
+  audiencia?: ViewMode;
+}) {
+  const tecnico = audiencia === "tecnico";
 
   const ncs: RankedNc[] = equipamentos
     .flatMap((eq) =>
@@ -71,44 +71,13 @@ export function NcList({ equipamentos }: { equipamentos: Equipamento[] }) {
 
   return (
     <section aria-label="Não-conformidades">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
-            Não-conformidades
-          </h2>
-          <span className="font-mono text-sm text-muted-foreground">
-            {ncs.length} no total
-          </span>
-        </div>
-
-        {/* Toggle síndico ⇄ técnico (P5): segmented control. Só troca qual texto
-            fica em primeiro plano — os dois já estão no dado. */}
-        <div
-          role="group"
-          aria-label="Modo de leitura"
-          className="inline-flex shrink-0 rounded-full border border-border bg-muted p-0.5 text-xs font-medium"
-        >
-          {MODES.map((m) => {
-            const on = mode === m.value;
-            return (
-              <button
-                key={m.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setMode(m.value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors",
-                  on
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <m.Icon className="size-3.5" strokeWidth={2.25} />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mb-4 flex items-baseline gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Não-conformidades
+        </h2>
+        <span className="font-mono text-sm text-muted-foreground">
+          {ncs.length} no total
+        </span>
       </div>
 
       <ol className="flex flex-col gap-3">

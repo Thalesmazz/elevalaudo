@@ -91,6 +91,15 @@ export async function deleteProducerLogo(url: string): Promise<void> {
   }
 }
 
+/** Remove o PDF do laudo do Blob ao excluir a extração (best-effort). */
+export async function deleteLaudoPdf(url: string): Promise<void> {
+  try {
+    await del(url);
+  } catch {
+    // PDF órfão no Blob não quebra o produto — ignora falha de limpeza.
+  }
+}
+
 /**
  * Baixa os bytes do PDF do Blob privado (server-side, autenticado por OIDC).
  * Usado pela extração — nunca expõe o PDF por URL pública.
