@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardCheck, FilePlus2 } from "lucide-react";
+import { FilePlus2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { Logo } from "@/components/logo";
 import { getSessao } from "@/lib/auth/session";
 import { getEmpresasDoUsuario } from "@/lib/empresas-db";
 
@@ -30,12 +31,8 @@ export default async function AppLayout({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topo mobile (a lateral some no md-) */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur-sm md:hidden">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm font-semibold tracking-tight"
-          >
-            <ClipboardCheck className="size-4 text-brand-green-strong" strokeWidth={2.25} />
-            ElevaLaudo
+          <Link href="/" className="flex items-center">
+            <Logo markClassName="size-6" wordClassName="text-sm" />
           </Link>
           <Link
             href="/upload"

@@ -6,7 +6,6 @@ import { Collapsible } from "@base-ui/react/collapsible";
 import {
   ChartPie,
   ChevronRight,
-  ClipboardCheck,
   FilePlus2,
   History,
   Inbox,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { GraphModal } from "@/components/graph-modal";
+import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { statusConfig } from "@/lib/status";
 import { isEngenheiro } from "@/lib/auth/roles";
@@ -78,12 +78,8 @@ export function AppSidebar({
     <aside className="hidden h-dvh w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:flex">
       {/* Topo: marca + nova extração + atalhos */}
       <div className="flex flex-col gap-3 p-3">
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-1 text-sm font-semibold tracking-tight"
-        >
-          <ClipboardCheck className="size-4 text-brand-green-strong" strokeWidth={2.25} />
-          ElevaLaudo
+        <Link href="/" className="flex items-center px-1">
+          <Logo markClassName="size-6" wordClassName="text-sm" />
         </Link>
         <Link
           href="/upload"
