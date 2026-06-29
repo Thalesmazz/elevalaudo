@@ -99,6 +99,8 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-fira-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-fira-code), ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -145,10 +147,33 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
+    background-image:
+      linear-gradient(180deg, color-mix(in oklch, var(--brand-cream-soft), transparent 10%) 0%, transparent 24rem),
+      linear-gradient(90deg, color-mix(in oklch, var(--border), transparent 72%) 1px, transparent 1px),
+      linear-gradient(180deg, color-mix(in oklch, var(--border), transparent 76%) 1px, transparent 1px);
+    background-size: auto, 42px 42px, 42px 42px;
+    background-attachment: fixed;
     /* Produto data-dense (laudos/contagens/datas/prazos): figuras tabulares
        evitam "tremer" os números e dão cara de painel profissional. */
     font-variant-numeric: tabular-nums;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-mono;
+    text-wrap: balance;
+  }
+  p,
+  li {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--brand-green), white 35%);
+    color: var(--foreground);
+  }
+  :focus-visible {
+    outline-offset: 2px;
   }
   /* Tailwind v4 removeu o cursor:pointer padrão de <button> — repõe pra todo
      elemento clicável habilitado (anti-pattern de UX se faltar). */
@@ -156,6 +181,25 @@
   [role="button"]:not([aria-disabled="true"]),
   summary {
     cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .surface-panel {
+    @apply border border-border bg-card/90 shadow-sm;
+    box-shadow:
+      0 1px 1px color-mix(in oklch, var(--foreground), transparent 94%),
+      0 18px 42px color-mix(in oklch, var(--brand-cream), transparent 58%);
+  }
+
+  .subtle-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground), transparent 76%) transparent;
+  }
+
+  .text-kicker {
+    @apply font-mono text-[0.68rem] font-semibold uppercase text-muted-foreground;
+    letter-spacing: 0.12em;
   }
 }
 
@@ -173,5 +217,88 @@
   }
   .status-lamp-on {
     animation: status-breathe 2.4s ease-in-out infinite;
+  }
+
+  @keyframes extraction-logo-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      opacity: 0.72;
+      transform: translateY(-1px) scale(1.035);
+    }
+  }
+
+  @keyframes extraction-halo {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(0.92);
+    }
+    50% {
+      opacity: 0.95;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes extraction-scan {
+    0% {
+      opacity: 0;
+      transform: translateX(-22%);
+    }
+    20%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(22%);
+    }
+  }
+
+  @keyframes extraction-tip-enter {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes extraction-step-dot {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.86);
+    }
+    45%,
+    60% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+  }
+
+  .extraction-logo-pulse {
+    animation: extraction-logo-pulse 2.8s ease-in-out infinite;
+  }
+
+  .extraction-halo {
+    animation: extraction-halo 2.8s ease-in-out infinite;
+  }
+
+  .extraction-scan {
+    animation: extraction-scan 4.2s ease-in-out infinite;
+  }
+
+  .extraction-tip-enter {
+    animation: extraction-tip-enter 420ms ease-out both;
+  }
+
+  .extraction-step-dot {
+    animation: extraction-step-dot 2.2s ease-in-out infinite;
   }
 }

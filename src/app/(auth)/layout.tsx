@@ -17,10 +17,10 @@ export default function AuthLayout({
       {/* Brilho de marca (verde, sutil) — dá um "momento" sem virar enfeite. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 size-[34rem] -translate-x-1/2 rounded-full bg-brand-green/20 opacity-70 blur-3xl"
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--brand-green),transparent_74%),transparent)]"
       />
 
-      <Link href="/" className="relative">
+      <Link href="/" className="relative rounded-xl focus-visible:ring-3 focus-visible:ring-ring/35">
         <Logo markClassName="size-9 drop-shadow-sm" wordClassName="text-lg" />
       </Link>
 

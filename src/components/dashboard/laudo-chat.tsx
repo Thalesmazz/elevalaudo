@@ -54,8 +54,10 @@ export function LaudoChat({ api }: { api: string }) {
       const raw = localStorage.getItem(PREFS_KEY);
       if (raw) {
         const p = JSON.parse(raw) as { aberto?: boolean; expandido?: boolean };
-        if (typeof p.aberto === "boolean") setAberto(p.aberto);
-        if (typeof p.expandido === "boolean") setExpandido(p.expandido);
+        queueMicrotask(() => {
+          if (typeof p.aberto === "boolean") setAberto(p.aberto);
+          if (typeof p.expandido === "boolean") setExpandido(p.expandido);
+        });
       }
     } catch {
       // localStorage indisponível/corrompido — segue com o padrão.

@@ -30,6 +30,7 @@ pnpm-debug.log*
 
 # tooling de agente (skills instaladas localmente) — mantém launch.json
 .claude/skills/
+.codex/skills/
 
 # test / coverage
 coverage/

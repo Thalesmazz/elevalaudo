@@ -61,7 +61,7 @@ export function NcList({
 
   if (ncs.length === 0) {
     return (
-      <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <section className="surface-panel rounded-2xl p-6 text-sm text-muted-foreground">
         Nenhuma não-conformidade apontada no laudo.
       </section>
     );
@@ -71,8 +71,8 @@ export function NcList({
 
   return (
     <section aria-label="Não-conformidades">
-      <div className="mb-4 flex items-baseline gap-3">
-        <h2 className="text-xl font-semibold tracking-tight">
+      <div className="mb-4 flex flex-wrap items-baseline gap-3">
+        <h2 className="text-2xl font-semibold tracking-tight">
           Não-conformidades
         </h2>
         <span className="font-mono text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ export function NcList({
             <li
               key={i}
               className={cn(
-                "rounded-xl border border-l-4 border-border bg-card p-4 sm:p-5",
+                "surface-panel rounded-2xl border-l-4 p-4 transition-all hover:-translate-y-0.5 hover:border-foreground/15 sm:p-5",
                 ACCENT[nc.severidade],
               )}
             >

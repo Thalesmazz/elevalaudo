@@ -30,13 +30,13 @@ export default async function AppLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topo mobile (a lateral some no md-) */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur-sm md:hidden">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/88 px-4 py-2.5 shadow-sm backdrop-blur-xl md:hidden">
           <Link href="/" className="flex items-center">
             <Logo markClassName="size-6" wordClassName="text-sm" />
           </Link>
           <Link
             href="/upload"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-[color-mix(in_oklch,var(--primary),black_12%)] active:translate-y-px"
           >
             <FilePlus2 className="size-4" strokeWidth={2.25} />
             Nova extração

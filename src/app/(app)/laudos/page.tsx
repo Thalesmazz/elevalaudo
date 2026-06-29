@@ -133,27 +133,47 @@ export default async function LaudosPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-5 py-8 sm:px-8 sm:py-12">
       {/* Cabeçalho */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Meus laudos</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-kicker">Operação de laudos</p>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Meus laudos
+          </h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             {rows.length} {rows.length === 1 ? "laudo" : "laudos"} no total
+            {rows.length > 0
+              ? " com status, histórico e revisão em um só lugar."
+              : ". Envie o primeiro PDF para montar o painel."}
           </p>
         </div>
-        <Button nativeButton={false} render={<Link href="/upload" />}>
+        <Button
+          nativeButton={false}
+          render={<Link href="/upload" />}
+          className="h-10 px-3.5"
+        >
           <FileUp className="size-4" strokeWidth={2.25} />
           Nova extração
         </Button>
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-brand-cream-soft py-16 text-center">
-          <Inbox className="size-7 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">
-            Nenhum laudo ainda. Envie o primeiro PDF para começar.
-          </p>
+        <div className="surface-panel flex flex-col items-center gap-4 rounded-2xl border-dashed px-6 py-16 text-center">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-green/20 text-brand-green-strong">
+            <Inbox className="size-6" strokeWidth={1.75} />
+          </span>
+          <div className="space-y-1">
+            <p className="font-semibold">Nenhum laudo ainda</p>
+            <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+              Envie um PDF para transformar a inspecao em painel, lista de
+              não-conformidades e resumo pronto para revisão.
+            </p>
+          </div>
+          <Button nativeButton={false} render={<Link href="/upload" />}>
+            <FileUp className="size-4" strokeWidth={2.25} />
+            Enviar primeiro laudo
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -176,14 +196,14 @@ export default async function LaudosPage() {
           Icon={History}
           hint="Evolução das não-conformidades ao longo do tempo"
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {historico.map((h) => (
               <Link
                 key={h.key}
                 href={`/predios/${h.key}`}
-                className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-brand-green-strong/40 hover:shadow-md"
+                className="surface-panel group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/35"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/30">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/25 ring-1 ring-brand-green-strong/15">
                   <History className="size-5 text-brand-green-strong" strokeWidth={2.25} />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -267,8 +287,8 @@ function Secao({
 }) {
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
           <Icon className="size-4 text-brand-green-strong" strokeWidth={2.25} />
           {titulo}
         </h2>
@@ -296,10 +316,10 @@ function Kpi({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-2xl border p-4 shadow-sm",
+        "surface-panel flex min-h-28 flex-col justify-between gap-2 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-foreground/15",
         destaque
           ? "border-brand-green-strong/30 bg-brand-green/10"
-          : "border-border bg-card",
+          : "border-border bg-card/90",
       )}
     >
       <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -346,7 +366,7 @@ function CardLaudo({
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm transition-all hover:border-brand-green-strong/40 hover:shadow-md",
+        "surface-panel group relative flex items-center gap-4 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md",
         destaque
           ? "border-brand-green-strong/30 bg-brand-green/10"
           : "border-border",
@@ -354,14 +374,14 @@ function CardLaudo({
     >
       <Link
         href={`/laudos/${laudo.id}`}
-        className="absolute inset-0 rounded-2xl"
+        className="absolute inset-0 rounded-2xl focus-visible:ring-3 focus-visible:ring-ring/35"
         aria-label={`Abrir laudo ${titulo}`}
       />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+              "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
               fluxo.cls,
             )}
           >

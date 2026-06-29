@@ -76,15 +76,15 @@ export function AppSidebar({
   const engenheiro = isEngenheiro(user.role);
 
   return (
-    <aside className="hidden h-dvh w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:flex">
+    <aside className="hidden h-dvh w-76 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/95 text-sidebar-foreground shadow-[1px_0_0_color-mix(in_oklch,var(--background),transparent_15%)] backdrop-blur-xl md:sticky md:top-0 md:flex">
       {/* Topo: marca + nova extração + atalhos */}
-      <div className="flex flex-col gap-3 p-3">
+      <div className="flex flex-col gap-3 p-3.5">
         <Link href="/" className="flex items-center px-1">
           <Logo markClassName="size-6" wordClassName="text-sm" />
         </Link>
         <Link
           href="/upload"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-[color-mix(in_oklch,var(--primary),black_12%)]"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-[color-mix(in_oklch,var(--primary),black_12%)] active:translate-y-px"
         >
           <FilePlus2 className="size-4" strokeWidth={2.25} />
           Nova extração
@@ -124,8 +124,8 @@ export function AppSidebar({
       </div>
 
       {/* Árvore Empresa → Prédio → extrações */}
-      <nav className="min-h-0 flex-1 overflow-y-auto border-t border-sidebar-border px-2 pt-2 pb-2">
-        <p className="px-2 py-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <nav className="subtle-scrollbar min-h-0 flex-1 overflow-y-auto border-t border-sidebar-border px-2 pt-2 pb-2">
+        <p className="text-kicker px-2 py-1.5">
           Empresas
         </p>
 
@@ -143,8 +143,8 @@ export function AppSidebar({
               return (
                 <li key={empresa.id}>
                   <Collapsible.Root defaultOpen={false}>
-                    <div className="group/emp flex items-center gap-0.5 rounded-lg pr-1 hover:bg-sidebar-accent">
-                      <Collapsible.Trigger className="group/trig flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium outline-none">
+                    <div className="group/emp flex items-center gap-0.5 rounded-lg pr-1 transition-colors hover:bg-sidebar-accent">
+                      <Collapsible.Trigger className="group/trig flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
                         <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/trig:rotate-90" />
                         <span className="truncate">{empresa.nome}</span>
                         <span className="ml-auto shrink-0 text-xs text-muted-foreground">
@@ -155,7 +155,7 @@ export function AppSidebar({
                         href={`/upload?empresaId=${encodeURIComponent(empresa.id)}`}
                         aria-label={`Nova extração para ${empresa.nome}`}
                         title={`Nova extração para ${empresa.nome}`}
-                        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-colors group-hover/emp:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
+                        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-all group-hover/emp:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
                       >
                         <Plus className="size-4" strokeWidth={2.25} />
                       </Link>
@@ -164,7 +164,7 @@ export function AppSidebar({
                         <button
                           type="button"
                           aria-label={`Gráficos de ${empresa.nome}`}
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-colors group-hover/emp:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-all group-hover/emp:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
                         >
                           <ChartPie className="size-4" strokeWidth={2} />
                         </button>
@@ -190,7 +190,7 @@ export function AppSidebar({
                                 {g.publicados >= 2 ? (
                                   <Link
                                     href={`/predios/${g.key}`}
-                                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-sidebar-accent"
+                                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/35"
                                   >
                                     <span
                                       className={cn(
@@ -227,7 +227,7 @@ export function AppSidebar({
                                           href={`/laudos/${l.id}`}
                                           aria-current={ativo ? "page" : undefined}
                                           className={cn(
-                                            "flex items-center gap-2 rounded-md py-1 pr-2 pl-3.5 text-sm transition-colors",
+                                            "flex items-center gap-2 rounded-md py-1.5 pr-2 pl-3.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring/35",
                                             ativo
                                               ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                                               : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
@@ -261,9 +261,9 @@ export function AppSidebar({
       </nav>
 
       {/* Rodapé: usuário + logout */}
-      <div className="border-t border-sidebar-border p-2">
-        <div className="flex items-center gap-2 rounded-lg px-2 py-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground uppercase">
+      <div className="border-t border-sidebar-border p-2.5">
+        <div className="flex items-center gap-2 rounded-xl bg-background/55 px-2 py-2 ring-1 ring-sidebar-border">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground uppercase">
             {user.nome.slice(0, 1)}
           </span>
           <span className="min-w-0 flex-1">
@@ -278,7 +278,7 @@ export function AppSidebar({
             <button
               type="submit"
               aria-label="Sair"
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               <LogOut className="size-4" />
             </button>
@@ -305,9 +305,9 @@ function NavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+        "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/35",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-background text-foreground shadow-sm ring-1 ring-sidebar-border"
           : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
       )}
     >
