@@ -1,8 +1,6 @@
-import { eq } from "drizzle-orm";
-
-import { db } from "@/db";
-import { laudos } from "@/db/schema";
+import { getSessao } from "@/lib/auth/session";
 import { downloadLaudoPdf } from "@/lib/blob";
+import { getLaudoAcessivelPorUsuario } from "@/lib/laudo-access";
 
 // Entrega o PDF original (Blob privado) pro engenheiro abrir e conferir na
 // revisão (P2). Server-side autenticado por OIDC; o id é um uuid não
@@ -13,8 +11,16 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const [laudo] = await db.select().from(laudos).where(eq(laudos.id, id));
-  if (!laudo) return new Response("Laudo não encontrado", { status: 404 });
+  const sessao = await getSessao();
+  if (!sessao) return new Response("Não autenticado", { status: 401 });
+
+  const acesso = await getLaudoAcessivelPorUsuario(id, sessao.user);
+  if (!acesso) return new Response("Laudo não encontrado", { status: 404 });
+  if (acesso.origem !== "proprio") {
+    return new Response("Sem permissão para acessar este PDF", { status: 403 });
+  }
+
+  const { laudo } = acesso;
 
   const bytes = await downloadLaudoPdf(laudo.blobPathname);
 

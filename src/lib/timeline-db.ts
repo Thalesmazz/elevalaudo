@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { laudos } from "@/db/schema";
+import { laudos, type User } from "@/db/schema";
+import { getUserIdsVisiveisNoHistorico } from "@/lib/laudo-access";
 import {
   pontoDeLaudo,
   type TimelinePonto,
@@ -27,11 +28,21 @@ import {
  */
 export async function getTimelinePredio(
   predioKey: string,
+  user?: User,
 ): Promise<TimelinePredio | null> {
+  const userIds = user ? await getUserIdsVisiveisNoHistorico(user) : null;
+  if (userIds && userIds.length === 0) return null;
+
   const rows = await db
     .select()
     .from(laudos)
-    .where(and(eq(laudos.predioKey, predioKey), eq(laudos.status, "publicado")));
+    .where(
+      and(
+        eq(laudos.predioKey, predioKey),
+        eq(laudos.status, "publicado"),
+        userIds ? inArray(laudos.userId, userIds) : undefined,
+      ),
+    );
 
   const pontos = rows
     .map((r) =>
@@ -75,10 +86,20 @@ export async function getTimelinePredio(
  */
 export async function contarPublicadosDoPredios(
   predioKey: string,
+  user?: User,
 ): Promise<number> {
+  const userIds = user ? await getUserIdsVisiveisNoHistorico(user) : null;
+  if (userIds && userIds.length === 0) return 0;
+
   const rows = await db
     .select({ id: laudos.id })
     .from(laudos)
-    .where(and(eq(laudos.predioKey, predioKey), eq(laudos.status, "publicado")));
+    .where(
+      and(
+        eq(laudos.predioKey, predioKey),
+        eq(laudos.status, "publicado"),
+        userIds ? inArray(laudos.userId, userIds) : undefined,
+      ),
+    );
   return rows.length;
 }

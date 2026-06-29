@@ -59,6 +59,9 @@ export async function aprovarLaudo(
     .from(laudos)
     .where(eq(laudos.id, input.id));
   if (!laudo) return { erro: "Laudo não encontrado." };
+  if (laudo.userId !== sessao.user.id) {
+    return { erro: "Você não tem permissão para revisar este laudo." };
+  }
   if (laudo.status === "extraindo") {
     return { erro: "A extração ainda não terminou. Aguarde e tente de novo." };
   }

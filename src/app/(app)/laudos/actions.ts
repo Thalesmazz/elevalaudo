@@ -14,8 +14,7 @@ export type ExcluirState = { erro?: string };
 /**
  * Exclui uma extração (laudo): apaga o PDF do Blob e a linha do banco.
  * Só o dono da extração pode excluir (defesa: o `userId` precisa bater com a
- * sessão; laudos legados sem dono — `userId` nulo — também são removíveis pelo
- * usuário logado no MVP single-produtor). Em sucesso, volta pra `/laudos`.
+ * sessão). Em sucesso, volta pra `/laudos`.
  */
 export async function excluirLaudo(
   _prev: ExcluirState,
@@ -34,7 +33,7 @@ export async function excluirLaudo(
     .limit(1);
 
   if (!laudo) return { erro: "Extração não encontrada." };
-  if (laudo.userId && laudo.userId !== sessao.user.id) {
+  if (laudo.userId !== sessao.user.id) {
     return { erro: "Você não tem permissão para excluir esta extração." };
   }
 

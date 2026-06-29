@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
 import { BrandHeader } from "@/components/dashboard/brand-header";
 import { NcCharts, type NcPonto } from "@/components/dashboard/nc-charts";
 import { getBranding } from "@/lib/branding";
+import { getSessao } from "@/lib/auth/session";
 import { statusConfig } from "@/lib/status";
 import { compararPontos, type MudancaNc } from "@/lib/timeline";
 import { getTimelinePredio } from "@/lib/timeline-db";
@@ -51,7 +52,10 @@ export default async function PredioTimelinePage({
   params: Promise<{ predioKey: string }>;
 }) {
   const { predioKey } = await params;
-  const timeline = await getTimelinePredio(predioKey);
+  const sessao = await getSessao();
+  if (!sessao) redirect("/login");
+
+  const timeline = await getTimelinePredio(predioKey, sessao.user);
   if (!timeline) notFound();
 
   const branding = await getBranding();

@@ -22,6 +22,7 @@ export default async function RevisarPage({
 
   const [laudo] = await db.select().from(laudos).where(eq(laudos.id, id));
   if (!laudo) notFound();
+  if (laudo.userId !== sessao.user.id) notFound();
 
   // Só dá pra revisar o que já foi extraído e ainda não publicado.
   if (laudo.status !== "revisar" || !laudo.extracao) {

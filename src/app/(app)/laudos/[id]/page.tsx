@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { notFound, redirect } from "next/navigation";
 import { Download, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,10 @@ import { ComplianceSeal } from "@/components/dashboard/compliance-seal";
 import { BrandHeader } from "@/components/dashboard/brand-header";
 import { LaudoChat } from "@/components/dashboard/laudo-chat";
 import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
-import { db } from "@/db";
-import { laudos } from "@/db/schema";
 import { getBranding } from "@/lib/branding";
 import { getSessao } from "@/lib/auth/session";
 import { isEngenheiro } from "@/lib/auth/roles";
+import { getLaudoAcessivelPorUsuario } from "@/lib/laudo-access";
 import { sharePath } from "@/lib/share";
 import { slugifyPredio } from "@/lib/timeline";
 import { contarPublicadosDoPredios } from "@/lib/timeline-db";
@@ -35,6 +33,32 @@ const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
   },
 };
 
+function statusLabelDoLaudo({
+  status,
+  engenheiro,
+  laudoProprio,
+}: {
+  status: string;
+  engenheiro: boolean;
+  laudoProprio: boolean;
+}) {
+  if (status === "revisar" && !engenheiro && laudoProprio) {
+    return {
+      label: "Extraído",
+      hint: "Extração concluída. O laudo já está disponível para consulta e download.",
+    };
+  }
+
+  if (status === "revisar" && !engenheiro) {
+    return {
+      label: "Recebido",
+      hint: "Laudo publicado pelo engenheiro e disponível para consulta.",
+    };
+  }
+
+  return STATUS_LABEL[status] ?? { label: status, hint: "" };
+}
+
 export default async function LaudoPage({
   params,
 }: {
@@ -42,17 +66,22 @@ export default async function LaudoPage({
 }) {
   const { id } = await params;
 
-  const [laudo] = await db.select().from(laudos).where(eq(laudos.id, id));
-  if (!laudo) notFound();
-
   const sessao = await getSessao();
-  const engenheiro = sessao ? isEngenheiro(sessao.user.role) : false;
+  if (!sessao) redirect("/login");
+
+  const acesso = await getLaudoAcessivelPorUsuario(id, sessao.user);
+  if (!acesso) notFound();
+
+  const { laudo } = acesso;
+  const engenheiro = isEngenheiro(sessao.user.role);
+  const laudoProprio = acesso.origem === "proprio";
 
   const branding = await getBranding();
-  const status = STATUS_LABEL[laudo.status] ?? {
-    label: laudo.status,
-    hint: "",
-  };
+  const status = statusLabelDoLaudo({
+    status: laudo.status,
+    engenheiro,
+    laudoProprio,
+  });
   const extracao = laudo.extracao;
   const totalNc =
     extracao?.equipamentos.reduce(
@@ -74,7 +103,7 @@ export default async function LaudoPage({
     laudo.predioKey ??
     (extracao ? slugifyPredio(extracao.predio.nome) : null);
   const laudosDoPredios = predioKey
-    ? await contarPublicadosDoPredios(predioKey)
+    ? await contarPublicadosDoPredios(predioKey, sessao.user)
     : 0;
   const temHistorico = predioKey !== null && laudosDoPredios >= 2;
 
@@ -93,12 +122,14 @@ export default async function LaudoPage({
             {laudo.fileName}
           </h1>
         </div>
-        <DeleteLaudoButton
-          id={laudo.id}
-          publicado={laudo.status === "publicado"}
-          variant="icon"
-          className="mt-0.5 shrink-0"
-        />
+        {laudoProprio ? (
+          <DeleteLaudoButton
+            id={laudo.id}
+            publicado={laudo.status === "publicado"}
+            variant="icon"
+            className="mt-0.5 shrink-0"
+          />
+        ) : null}
       </div>
 
       <div className="rounded-lg border border-input p-4">
@@ -155,6 +186,16 @@ export default async function LaudoPage({
         </>
       ) : null}
 
+      {extracao ? (
+        <Button
+          nativeButton={false}
+          render={<Link href={`/laudos/${id}/exportar`} />}
+        >
+          <Download className="size-4" strokeWidth={2.25} />
+          Baixar PDF do laudo
+        </Button>
+      ) : null}
+
       {laudo.status === "revisar" && engenheiro ? (
         <Button
           nativeButton={false}
@@ -162,13 +203,6 @@ export default async function LaudoPage({
         >
           Revisar e assinar
         </Button>
-      ) : null}
-
-      {laudo.status === "revisar" && !engenheiro ? (
-        <p className="rounded-lg border border-input bg-muted/40 p-4 text-sm text-muted-foreground">
-          Esta extração ainda aguarda revisão e assinatura do engenheiro
-          responsável antes de ser publicada.
-        </p>
       ) : null}
 
       {laudo.status === "publicado" ? (

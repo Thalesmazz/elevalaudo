@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { desc, eq } from "drizzle-orm";
 import {
   ArrowRight,
   Building2,
@@ -16,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
 import { db } from "@/db";
 import { laudos, type Laudo } from "@/db/schema";
+import { getSessao } from "@/lib/auth/session";
+import { isEngenheiro } from "@/lib/auth/roles";
 import { statusConfig, type StatusGeral } from "@/lib/status";
 import { slugifyPredio } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
@@ -39,6 +42,22 @@ const FLUXO: Record<string, { label: string; cls: string }> = {
   },
 };
 
+function fluxoDoLaudo(status: string, engenheiro: boolean) {
+  if (status === "revisar" && !engenheiro) {
+    return {
+      label: "Extraído",
+      cls: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-400",
+    };
+  }
+
+  return (
+    FLUXO[status] ?? {
+      label: status,
+      cls: "bg-muted text-muted-foreground ring-border",
+    }
+  );
+}
+
 function totalNcDe(l: Laudo): number {
   return (
     l.extracao?.equipamentos.reduce(
@@ -49,7 +68,15 @@ function totalNcDe(l: Laudo): number {
 }
 
 export default async function LaudosPage() {
-  const rows = await db.select().from(laudos).orderBy(desc(laudos.createdAt));
+  const sessao = await getSessao();
+  if (!sessao) redirect("/login");
+  const engenheiro = isEngenheiro(sessao.user.role);
+
+  const rows = await db
+    .select()
+    .from(laudos)
+    .where(eq(laudos.userId, sessao.user.id))
+    .orderBy(desc(laudos.createdAt));
 
   // Prédios com histórico = ≥2 laudos publicados com a mesma predio_key (têm
   // "filme", não só "foto"). Vira atalho direto pra timeline (P5, ADR-007).
@@ -79,7 +106,7 @@ export default async function LaudosPage() {
   // Fila = extrações ainda em andamento, exceto a última (que vira destaque).
   const fila = rows
     .slice(1)
-    .filter((l) => l.status === "extraindo" || l.status === "revisar");
+    .filter((l) => l.status === "extraindo" || (engenheiro && l.status === "revisar"));
 
   // Arquivo por prédio: o nome do prédio aparece UMA vez, com as extrações
   // datadas embaixo (resolve a repetição). Mais recente primeiro dentro do grupo.
@@ -100,7 +127,7 @@ export default async function LaudosPage() {
     total: rows.length,
     publicados: rows.filter((l) => l.status === "publicado").length,
     andamento: rows.filter(
-      (l) => l.status === "extraindo" || l.status === "revisar",
+      (l) => l.status === "extraindo" || (engenheiro && l.status === "revisar"),
     ).length,
     predios: grupos.length,
   };
@@ -177,7 +204,7 @@ export default async function LaudosPage() {
       {/* Última extração (destaque) */}
       {ultima ? (
         <Secao titulo="Última extração" Icon={Sparkles}>
-          <CardLaudo laudo={ultima} destaque />
+          <CardLaudo laudo={ultima} engenheiro={engenheiro} destaque />
         </Secao>
       ) : null}
 
@@ -191,7 +218,7 @@ export default async function LaudosPage() {
           <ul className="flex flex-col gap-2.5">
             {fila.map((l) => (
               <li key={l.id}>
-                <CardLaudo laudo={l} />
+                <CardLaudo laudo={l} engenheiro={engenheiro} />
               </li>
             ))}
           </ul>
@@ -214,7 +241,7 @@ export default async function LaudosPage() {
                 <ul className="flex flex-col gap-2.5">
                   {g.laudos.map((l) => (
                     <li key={l.id}>
-                      <CardLaudo laudo={l} semTitulo />
+                      <CardLaudo laudo={l} engenheiro={engenheiro} semTitulo />
                     </li>
                   ))}
                 </ul>
@@ -300,17 +327,16 @@ function Kpi({
  */
 function CardLaudo({
   laudo,
+  engenheiro,
   destaque = false,
   semTitulo = false,
 }: {
   laudo: Laudo;
+  engenheiro: boolean;
   destaque?: boolean;
   semTitulo?: boolean;
 }) {
-  const fluxo = FLUXO[laudo.status] ?? {
-    label: laudo.status,
-    cls: "bg-muted text-muted-foreground ring-border",
-  };
+  const fluxo = fluxoDoLaudo(laudo.status, engenheiro);
   const extracao = laudo.extracao;
   const titulo = extracao?.predio.nome || laudo.fileName;
   const totalNc = totalNcDe(laudo);

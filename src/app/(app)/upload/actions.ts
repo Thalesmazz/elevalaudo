@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { empresas, laudos } from "@/db/schema";
@@ -51,7 +51,12 @@ export async function uploadLaudo(
     const [dono] = await db
       .select({ id: empresas.id })
       .from(empresas)
-      .where(eq(empresas.id, empresaIdRaw))
+      .where(
+        and(
+          eq(empresas.id, empresaIdRaw),
+          eq(empresas.ownerUserId, sessao.user.id),
+        ),
+      )
       .limit(1);
     if (!dono) return { erro: "Empresa inválida." };
     empresaId = empresaIdRaw;
