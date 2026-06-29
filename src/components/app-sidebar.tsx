@@ -13,6 +13,7 @@ import {
   Link2,
   LogOut,
   Palette,
+  Plus,
 } from "lucide-react";
 
 import { GraphModal } from "@/components/graph-modal";
@@ -150,6 +151,14 @@ export function AppSidebar({
                           {empresa.laudos.length}
                         </span>
                       </Collapsible.Trigger>
+                      <Link
+                        href={`/upload?empresaId=${encodeURIComponent(empresa.id)}`}
+                        aria-label={`Nova extração para ${empresa.nome}`}
+                        title={`Nova extração para ${empresa.nome}`}
+                        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-colors group-hover/emp:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
+                      >
+                        <Plus className="size-4" strokeWidth={2.25} />
+                      </Link>
                       {/* Ícone de gráfico → modal de seleção de laudos */}
                       <GraphModal empresaNome={empresa.nome} laudos={empresa.laudos}>
                         <button

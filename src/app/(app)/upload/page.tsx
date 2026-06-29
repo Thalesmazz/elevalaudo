@@ -8,11 +8,19 @@ import { UploadForm } from "./upload-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function UploadPage() {
+export default async function UploadPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ empresaId?: string }>;
+}) {
   const sessao = await getSessao();
   if (!sessao) redirect("/login");
 
+  const { empresaId } = await searchParams;
   const empresas = await getEmpresasSimples(sessao.user.id);
+  const empresaInicialId = empresas.some((e) => e.id === empresaId)
+    ? empresaId
+    : undefined;
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-8 px-6 py-16">
@@ -26,7 +34,7 @@ export default async function UploadPage() {
         </p>
       </div>
 
-      <UploadForm empresas={empresas} />
+      <UploadForm empresas={empresas} empresaInicialId={empresaInicialId} />
 
       <Link
         href="/produtor"

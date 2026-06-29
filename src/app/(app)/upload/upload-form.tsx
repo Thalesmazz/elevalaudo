@@ -13,8 +13,10 @@ const inputCls =
 
 export function UploadForm({
   empresas,
+  empresaInicialId,
 }: {
   empresas: { id: string; nome: string }[];
+  empresaInicialId?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     uploadLaudo,
@@ -24,6 +26,7 @@ export function UploadForm({
   const [modo, setModo] = useState<"existente" | "nova">(
     empresas.length > 0 ? "existente" : "nova",
   );
+  const empresaDefault = empresaInicialId ?? empresas[0]?.id;
 
   return (
     <form action={formAction} className="space-y-5">
@@ -56,7 +59,7 @@ export function UploadForm({
             name="empresaId"
             required
             disabled={pending}
-            defaultValue={empresas[0].id}
+            defaultValue={empresaDefault}
             className={inputCls}
           >
             {empresas.map((e) => (
