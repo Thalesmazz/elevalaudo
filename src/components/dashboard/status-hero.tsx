@@ -45,7 +45,7 @@ export function StatusHero({
   return (
     <section
       aria-label={`Status do laudo: ${active.label}`}
-      className="relative overflow-hidden rounded-2xl border border-border bg-card"
+      className="surface-panel relative overflow-hidden rounded-3xl"
     >
       {/* brilho do status sangrando do fundo — reforça a cor sem virar enfeite */}
       <div
@@ -58,7 +58,7 @@ export function StatusHero({
 
       <div className="relative flex flex-col gap-8 p-6 sm:flex-row sm:items-center sm:gap-10 sm:p-10">
         {/* semáforo */}
-        <div className="flex shrink-0 flex-col gap-4 rounded-[1.75rem] bg-zinc-900 p-4 ring-1 ring-inset ring-white/10 dark:bg-zinc-950">
+        <div className="flex shrink-0 flex-col gap-4 rounded-[1.75rem] bg-zinc-900 p-4 shadow-2xl shadow-zinc-950/20 ring-1 ring-inset ring-white/10 dark:bg-zinc-950">
           {STATUS_ORDER.map((s) => {
             const lamp = statusConfig[s];
             const on = s === status;
@@ -79,7 +79,7 @@ export function StatusHero({
 
         {/* leitura */}
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          <p className="text-kicker">
             Status do laudo
           </p>
 
@@ -90,7 +90,7 @@ export function StatusHero({
             />
             <h1
               className={cn(
-                "text-5xl font-semibold tracking-tighter sm:text-7xl",
+                "text-5xl font-semibold tracking-tight sm:text-7xl",
                 active.accent,
               )}
             >
@@ -98,11 +98,11 @@ export function StatusHero({
             </h1>
           </div>
 
-          <p className="mt-3 text-lg text-foreground/80 sm:text-xl">
+          <p className="mt-3 max-w-2xl text-lg leading-8 text-foreground/80 sm:text-xl">
             {active.message}
           </p>
 
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
+          <p className="mt-2 font-mono text-sm text-muted-foreground">
             {countLine}
             {equipamentos > 0
               ? ` · ${equipamentos} equipamento${equipamentos === 1 ? "" : "s"}`
@@ -112,7 +112,7 @@ export function StatusHero({
       </div>
 
       {/* rodapé: contexto + nota de liability, fora do "momento" do hero */}
-      <div className="relative flex flex-col gap-1 border-t border-border px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
+      <div className="relative flex flex-col gap-1 border-t border-border bg-brand-cream-soft/55 px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
         <span className="truncate font-medium text-foreground/70">{predio}</span>
         <span>
           {dataInspecao ? `Inspeção em ${dataInspecao} · ` : ""}

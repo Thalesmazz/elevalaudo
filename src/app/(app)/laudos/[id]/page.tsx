@@ -9,6 +9,7 @@ import { ComplianceSeal } from "@/components/dashboard/compliance-seal";
 import { BrandHeader } from "@/components/dashboard/brand-header";
 import { LaudoChat } from "@/components/dashboard/laudo-chat";
 import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
+import { ExtractionLoading } from "@/components/dashboard/extraction-loading";
 import { getBranding } from "@/lib/branding";
 import { getSessao } from "@/lib/auth/session";
 import { isEngenheiro } from "@/lib/auth/roles";
@@ -108,19 +109,25 @@ export default async function LaudoPage({
   const temHistorico = predioKey !== null && laudosDoPredios >= 2;
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-16">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8 sm:py-12">
       {laudo.status === "extraindo" ? <AutoRefresh /> : null}
 
       <BrandHeader branding={branding} />
 
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          <p className="text-kicker">
             Laudo
           </p>
-          <h1 className="text-xl font-semibold tracking-tight break-all">
+          <h1 className="text-2xl font-semibold tracking-tight break-all sm:text-3xl">
             {laudo.fileName}
           </h1>
+          {extracao ? (
+            <p className="text-sm text-muted-foreground">
+              {extracao.predio.nome}
+              {extracao.dataInspecao ? ` · Inspeção ${extracao.dataInspecao}` : ""}
+            </p>
+          ) : null}
         </div>
         {laudoProprio ? (
           <DeleteLaudoButton
@@ -132,17 +139,23 @@ export default async function LaudoPage({
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-input p-4">
-        <p className="text-sm font-medium">{status.label}</p>
-        {status.hint ? (
-          <p className="mt-1 text-sm text-muted-foreground">{status.hint}</p>
-        ) : null}
-        {laudo.erroExtracao ? (
-          <p className="mt-2 text-sm text-red-600">
-            Falha na extração: {laudo.erroExtracao}
-          </p>
-        ) : null}
-      </div>
+      {laudo.status === "extraindo" ? (
+        <ExtractionLoading fileName={laudo.fileName} />
+      ) : (
+        <div className="surface-panel rounded-2xl p-4">
+          <p className="text-sm font-semibold">{status.label}</p>
+          {status.hint ? (
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {status.hint}
+            </p>
+          ) : null}
+          {laudo.erroExtracao ? (
+            <p className="mt-2 text-sm text-red-600">
+              Falha na extração: {laudo.erroExtracao}
+            </p>
+          ) : null}
+        </div>
+      )}
 
       {extracao ? (
         <>
@@ -165,10 +178,10 @@ export default async function LaudoPage({
           {temHistorico && predioKey ? (
             <Link
               href={`/predios/${predioKey}`}
-              className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
+              className="surface-panel group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 focus-visible:ring-3 focus-visible:ring-ring/35"
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <History className="size-4.5 text-foreground" strokeWidth={2} />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/20">
+                <History className="size-5 text-brand-green-strong" strokeWidth={2} />
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-medium">
@@ -206,7 +219,7 @@ export default async function LaudoPage({
       ) : null}
 
       {laudo.status === "publicado" ? (
-        <div className="space-y-3 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
+        <div className="space-y-3 rounded-2xl border border-emerald-300/70 bg-emerald-50/90 p-4 text-sm text-emerald-950 shadow-sm">
           <div className="space-y-1">
             <p className="font-medium">Revisado e assinado</p>
             <p>
@@ -218,20 +231,20 @@ export default async function LaudoPage({
             </p>
           </div>
           {laudo.shareToken ? (
-            <div className="space-y-1 border-t border-green-300 pt-3">
+            <div className="space-y-1 border-t border-emerald-300/70 pt-3">
               <p className="font-medium">Link público para o síndico</p>
-              <p className="text-green-800/80">
+              <p className="text-emerald-900/75">
                 Sem login — quem tem o link vê o laudo. Mande no WhatsApp.
               </p>
               <a
                 href={sharePath(laudo.shareToken)}
-                className="block truncate font-mono text-xs break-all text-green-900 underline"
+                className="block truncate font-mono text-xs break-all text-emerald-950 underline underline-offset-4"
               >
                 {sharePath(laudo.shareToken)}
               </a>
               <a
                 href={`${sharePath(laudo.shareToken)}/pdf`}
-                className="inline-flex w-fit items-center gap-2 rounded-lg border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-900 transition-colors hover:bg-green-100"
+                className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-950 transition-colors hover:bg-emerald-100"
               >
                 <Download className="size-3.5" strokeWidth={2} />
                 Baixar PDF branded

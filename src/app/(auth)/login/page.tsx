@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative w-full max-w-sm space-y-5">
-      <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-7">
+      <div className="surface-panel space-y-6 rounded-2xl p-6 sm:p-7">
         <div className="space-y-1.5 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
           <p className="text-sm text-muted-foreground">
@@ -26,21 +26,21 @@ export default function LoginPage() {
         </div>
 
         <form action={formAction} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            disabled={pending}
-            className={inputCls}
-            placeholder="voce@empresa.com.br"
-          />
-        </div>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              disabled={pending}
+              className={inputCls}
+              placeholder="voce@empresa.com.br"
+            />
+          </div>
 
         <div className="space-y-1.5">
           <label htmlFor="senha" className="text-sm font-medium">

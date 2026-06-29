@@ -38,7 +38,7 @@ export default function CadastroPage() {
 
   return (
     <div className="relative w-full max-w-sm space-y-5">
-      <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-7">
+      <div className="surface-panel space-y-6 rounded-2xl p-6 sm:p-7">
         <div className="space-y-1.5 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Criar conta</h1>
           <p className="text-sm text-muted-foreground">
@@ -47,9 +47,9 @@ export default function CadastroPage() {
         </div>
 
         <form action={formAction} className="space-y-4">
-        {/* Perfil — segmented control. O input hidden carrega o valor pro action. */}
-        <input type="hidden" name="role" value={role} />
-        <div className="grid grid-cols-2 gap-2">
+          {/* Perfil — segmented control. O input hidden carrega o valor pro action. */}
+          <input type="hidden" name="role" value={role} />
+          <div className="grid grid-cols-2 gap-2">
           {PERFIS.map((p) => {
             const ativo = role === p.value;
             return (
@@ -59,9 +59,9 @@ export default function CadastroPage() {
                 onClick={() => setRole(p.value)}
                 aria-pressed={ativo}
                 className={cn(
-                  "flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors",
+                  "flex min-h-28 flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all focus-visible:ring-3 focus-visible:ring-ring/35",
                   ativo
-                    ? "border-brand-green-strong/40 bg-brand-green/10"
+                    ? "border-brand-green-strong/40 bg-brand-green/10 shadow-sm"
                     : "border-border hover:bg-muted/50",
                 )}
               >
@@ -77,7 +77,7 @@ export default function CadastroPage() {
               </button>
             );
           })}
-        </div>
+          </div>
 
         <div className="space-y-1.5">
           <label htmlFor="nome" className="text-sm font-medium">

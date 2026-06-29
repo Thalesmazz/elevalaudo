@@ -9,7 +9,7 @@ import { uploadLaudo, type UploadState } from "./actions";
 const initialState: UploadState = {};
 
 const inputCls =
-  "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export function UploadForm({
   empresas,
@@ -40,7 +40,7 @@ export function UploadForm({
               onClick={() =>
                 setModo((m) => (m === "nova" ? "existente" : "nova"))
               }
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               {modo === "nova" ? (
                 "Escolher existente"
@@ -87,10 +87,17 @@ export function UploadForm({
         </label>
         <label
           htmlFor="pdf"
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-muted/30 px-6 py-12 text-center text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-muted/30 px-6 py-12 text-center text-sm text-muted-foreground transition-all hover:border-brand-green-strong/40 hover:bg-brand-green/10 focus-within:ring-3 focus-within:ring-ring/35"
         >
-          <FileUp className="size-6" />
-          <span>Clique para escolher o PDF do laudo</span>
+          <span className="flex size-11 items-center justify-center rounded-xl bg-background shadow-sm ring-1 ring-border">
+            <FileUp className="size-5 text-brand-green-strong" />
+          </span>
+          <span className="font-medium text-foreground">
+            Clique para escolher o PDF do laudo
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Arquivo .pdf, preferencialmente com texto selecionável.
+          </span>
           <input
             id="pdf"
             name="pdf"
