@@ -19,7 +19,9 @@ const COOKIE_SESSAO = "el_session";
  */
 
 // Exatas: casam só o caminho idêntico (a "/" não pode usar startsWith — casaria tudo).
-const ROTAS_PUBLICAS_EXATAS = ["/"];
+// `icon.svg` é metadata route do App Router e precisa ficar pública, senão o
+// navegador logado-fora recebe redirect pro /login no request do favicon.
+const ROTAS_PUBLICAS_EXATAS = ["/", "/icon.svg"];
 const ROTAS_PUBLICAS_PREFIXO = [
   "/login",
   "/cadastro",
