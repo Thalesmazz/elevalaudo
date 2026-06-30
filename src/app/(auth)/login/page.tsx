@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/logo";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
@@ -17,14 +18,28 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
 
   return (
-    <div className="relative w-full max-w-sm space-y-5">
-      <div className="surface-panel space-y-6 rounded-2xl p-6 sm:p-7">
-        <div className="space-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
+    <div className="relative w-full max-w-sm space-y-6">
+      {/* Cabeçalho da marca: continuidade visual com o painel da esquerda */}
+      <div className="flex flex-col items-center gap-3 text-center lg:items-start lg:text-left">
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-green/15 ring-1 ring-brand-green-strong/15">
+          <LogoMark className="size-7" />
+        </span>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Bem-vindo de volta
+          </h1>
           <p className="text-sm text-muted-foreground">
             Acesse seu painel de laudos.
           </p>
         </div>
+      </div>
+
+      <div className="surface-panel relative overflow-hidden rounded-2xl p-6 sm:p-7">
+        {/* fio de acento da marca no topo do card */}
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,var(--brand-green),transparent)]"
+        />
 
         <form action={formAction} className="space-y-4">
           <div className="space-y-1.5">
@@ -103,7 +118,10 @@ export default function LoginPage() {
                 Entrando…
               </>
             ) : (
-              "Entrar"
+              <>
+                Entrar
+                <ArrowRight className="size-4" strokeWidth={2.25} />
+              </>
             )}
           </Button>
         </form>

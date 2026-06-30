@@ -31,15 +31,25 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       {/* suppressHydrationWarning: extensões de navegador (ex.: ColorZilla
           injeta `cz-shortcut-listen`) mexem no <body> antes do React hidratar,
-          gerando um falso mismatch. Suprime só esse ruído de extensão — não
-          esconde mismatch real do nosso código. */}
+          gerando um falso mismatch. No <html> é por causa do script de tema
+          abaixo, que adiciona/remove `.dark` antes do React hidratar. Suprime só
+          esse ruído — não esconde mismatch real do nosso código. */}
       <body
         className="min-h-full flex flex-col"
         suppressHydrationWarning
       >
+        {/* Tema (claro/escuro): aplica a classe ANTES da pintura pra não piscar.
+            Escolha explícita persiste em localStorage; sem escolha, segue o
+            sistema. Roda como 1º filho do body (síncrono, pré-render). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var e=localStorage.getItem('el-theme');var d=e?e==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;var c=document.documentElement.classList;d?c.add('dark'):c.remove('dark');}catch(_){}})();`,
+          }}
+        />
         {children}
       </body>
     </html>

@@ -1,15 +1,41 @@
 import Link from "next/link";
-import { CalendarClock, ShieldCheck, Signature } from "lucide-react";
+import {
+  CalendarClock,
+  FileUp,
+  ScanText,
+  ShieldCheck,
+  Signature,
+} from "lucide-react";
 
 import { Logo, LogoMark } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
  * Layout das telas de auth (login/cadastro): split-screen. À esquerda, um painel
- * de marca (verde) com o "momento" do produto — o semáforo RAG e os sinais de
- * confiança (NBR/RIA/assinatura). À direita, o formulário, centrado e calmo.
- * No mobile o painel some e fica só a marca + form. É a porta de entrada, antes
- * de existir sessão — sem sidebar nem nav.
+ * de marca (sempre escuro) que EXPLICA o produto — o que ele faz e o fluxo em
+ * três passos (PDF -> IA estrutura -> engenheiro assina) com os selos de
+ * confiança. À direita, o formulário, com o toggle de tema no topo. No mobile o
+ * painel some e fica só a marca + form. É a porta de entrada, antes da sessão.
  */
+
+const PASSOS = [
+  {
+    Icon: FileUp,
+    titulo: "Envie o PDF da inspeção",
+    desc: "Texto nativo ou escaneado, sem formatar nada.",
+  },
+  {
+    Icon: ScanText,
+    titulo: "A IA estrutura e resume",
+    desc: "Equipamentos, não-conformidades e prazos em português claro.",
+  },
+  {
+    Icon: Signature,
+    titulo: "Engenheiro revisa e assina",
+    desc: "Só então o síndico recebe o painel publicado.",
+  },
+];
+
 export default function AuthLayout({
   children,
 }: {
@@ -17,7 +43,7 @@ export default function AuthLayout({
 }) {
   return (
     <main className="grid min-h-dvh flex-1 lg:grid-cols-2">
-      {/* Painel de marca (só desktop) */}
+      {/* Painel de marca explicativo (só desktop) */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-zinc-950 p-10 text-zinc-100 lg:flex xl:p-14">
         <div
           aria-hidden
@@ -32,7 +58,6 @@ export default function AuthLayout({
           href="/"
           className="relative inline-flex w-fit rounded-xl focus-visible:ring-3 focus-visible:ring-brand-green/50"
         >
-          {/* Wordmark em tom claro p/ contraste no painel escuro */}
           <span className="inline-flex items-center gap-2.5">
             <LogoMark className="size-9" />
             <span className="text-2xl font-semibold tracking-tight">
@@ -42,32 +67,46 @@ export default function AuthLayout({
           </span>
         </Link>
 
-        <div className="relative max-w-md space-y-8">
-          <p className="text-2xl font-semibold leading-9 tracking-tight text-balance text-white">
-            O laudo técnico vira um painel que o síndico entende sozinho.
-          </p>
-
-          {/* mini-semáforo: o vocabulário visual do produto */}
-          <div className="flex items-center gap-4">
-            <div className="flex shrink-0 flex-col gap-2 rounded-2xl bg-zinc-900 p-2.5 ring-1 ring-inset ring-white/10">
-              <span className="size-5 rounded-full bg-emerald-500 shadow-[0_0_16px_3px_rgba(16,185,129,0.55)]" />
-              <span className="size-5 rounded-full bg-amber-400/20" />
-              <span className="size-5 rounded-full bg-red-500/20" />
-            </div>
-            <div className="text-sm text-zinc-400">
-              <p className="font-medium text-emerald-400">Seguro</p>
-              <p>Status legível em 2 segundos, sem jargão.</p>
-            </div>
+        <div className="relative max-w-md space-y-9">
+          <div className="space-y-4">
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight text-balance text-white">
+              O laudo do elevador, traduzido para quem decide.
+            </h2>
+            <p className="text-base leading-7 text-zinc-400">
+              O ElevaLaudo transforma o PDF técnico da inspeção num painel e num
+              resumo que o síndico entende sozinho. A IA prepara; o engenheiro
+              assina.
+            </p>
           </div>
 
-          <ul className="space-y-3 text-sm text-zinc-300">
+          {/* Fluxo em 3 passos: explica o produto de relance */}
+          <ol className="space-y-5">
+            {PASSOS.map((p, i) => (
+              <li key={p.titulo} className="flex gap-4">
+                <span className="relative flex flex-col items-center">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-brand-green ring-1 ring-white/10">
+                    <p.Icon className="size-5" strokeWidth={2} />
+                  </span>
+                  {i < PASSOS.length - 1 ? (
+                    <span className="mt-1 h-6 w-px bg-white/10" aria-hidden />
+                  ) : null}
+                </span>
+                <div className="pt-1">
+                  <p className="font-medium text-zinc-100">{p.titulo}</p>
+                  <p className="text-sm leading-6 text-zinc-400">{p.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-zinc-400">
             {[
-              { Icon: ShieldCheck, t: "Conforme NBR 16858" },
-              { Icon: CalendarClock, t: "Acompanha a RIA municipal" },
-              { Icon: Signature, t: "Revisão e assinatura do responsável técnico" },
+              { Icon: ShieldCheck, t: "NBR 16858" },
+              { Icon: CalendarClock, t: "Prazos da RIA" },
+              { Icon: Signature, t: "Assinatura do RT" },
             ].map((it) => (
-              <li key={it.t} className="flex items-center gap-3">
-                <it.Icon className="size-4 shrink-0 text-brand-green" strokeWidth={2.25} />
+              <li key={it.t} className="inline-flex items-center gap-1.5">
+                <it.Icon className="size-3.5 text-brand-green" strokeWidth={2.25} />
                 {it.t}
               </li>
             ))}
@@ -87,6 +126,11 @@ export default function AuthLayout({
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--brand-green),transparent_80%),transparent)] lg:hidden"
         />
+
+        {/* Toggle de tema, topo direito */}
+        <div className="absolute top-5 right-5 z-10">
+          <ThemeToggle />
+        </div>
 
         <Link
           href="/"

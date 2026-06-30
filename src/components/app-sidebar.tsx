@@ -18,6 +18,7 @@ import {
 
 import { GraphModal } from "@/components/graph-modal";
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { statusConfig } from "@/lib/status";
 import { isEngenheiro } from "@/lib/auth/roles";
@@ -274,6 +275,7 @@ export function AppSidebar({
               {ROLE_LABEL[user.role] ?? user.role}
             </span>
           </span>
+          <ThemeToggle className="size-8 rounded-md border-0 hover:bg-sidebar-accent" />
           <form action={logout}>
             <button
               type="submit"

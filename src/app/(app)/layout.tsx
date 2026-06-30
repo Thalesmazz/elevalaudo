@@ -4,6 +4,7 @@ import { FilePlus2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getSessao } from "@/lib/auth/session";
 import { getEmpresasDoUsuario } from "@/lib/empresas-db";
 
@@ -34,13 +35,16 @@ export default async function AppLayout({
           <Link href="/laudos" className="flex items-center">
             <Logo markClassName="size-8" wordClassName="text-lg" />
           </Link>
-          <Link
-            href="/upload"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-[color-mix(in_oklch,var(--primary),black_12%)] active:translate-y-px"
-          >
-            <FilePlus2 className="size-4" strokeWidth={2.25} />
-            Nova extração
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/upload"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-[color-mix(in_oklch,var(--primary),black_12%)] active:translate-y-px"
+            >
+              <FilePlus2 className="size-4" strokeWidth={2.25} />
+              Nova extração
+            </Link>
+          </div>
         </header>
 
         {children}
