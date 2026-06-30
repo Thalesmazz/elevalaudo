@@ -191,7 +191,7 @@ export default async function LaudosPage() {
           <div className="space-y-1">
             <p className="font-semibold">Nenhum laudo ainda</p>
             <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-              Envie um PDF para transformar a inspecao em painel, lista de
+              Envie um PDF para transformar a inspeção em painel, lista de
               não-conformidades e resumo pronto para revisão.
             </p>
           </div>

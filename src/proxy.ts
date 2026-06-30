@@ -18,7 +18,9 @@ const COOKIE_SESSAO = "el_session";
  * O `matcher` já exclui `_next` e assets estáticos.
  */
 
-const ROTAS_PUBLICAS = [
+// Exatas: casam só o caminho idêntico (a "/" não pode usar startsWith — casaria tudo).
+const ROTAS_PUBLICAS_EXATAS = ["/"];
+const ROTAS_PUBLICAS_PREFIXO = [
   "/login",
   "/cadastro",
   "/r/",
@@ -30,9 +32,9 @@ const ROTAS_PUBLICAS = [
 export default function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const publica = ROTAS_PUBLICAS.some(
-    (p) => pathname === p || pathname.startsWith(p),
-  );
+  const publica =
+    ROTAS_PUBLICAS_EXATAS.includes(pathname) ||
+    ROTAS_PUBLICAS_PREFIXO.some((p) => pathname === p || pathname.startsWith(p));
   if (publica) return NextResponse.next();
 
   const temSessao = req.cookies.has(COOKIE_SESSAO);
