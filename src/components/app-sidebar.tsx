@@ -79,8 +79,8 @@ export function AppSidebar({
     <aside className="hidden h-dvh w-76 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/95 text-sidebar-foreground shadow-[1px_0_0_color-mix(in_oklch,var(--background),transparent_15%)] backdrop-blur-xl md:sticky md:top-0 md:flex">
       {/* Topo: marca + nova extração + atalhos */}
       <div className="flex flex-col gap-3 p-3.5">
-        <Link href="/" className="flex items-center px-1">
-          <Logo markClassName="size-6" wordClassName="text-sm" />
+        <Link href="/" className="flex items-center px-1 py-1">
+          <Logo markClassName="size-9" wordClassName="text-xl" />
         </Link>
         <Link
           href="/upload"

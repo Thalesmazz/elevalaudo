@@ -21,7 +21,7 @@ export default function AuthLayout({
       />
 
       <Link href="/" className="relative rounded-xl focus-visible:ring-3 focus-visible:ring-ring/35">
-        <Logo markClassName="size-9 drop-shadow-sm" wordClassName="text-lg" />
+        <Logo markClassName="size-14 drop-shadow-sm" wordClassName="text-3xl" />
       </Link>
 
       {children}

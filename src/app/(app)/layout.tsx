@@ -32,7 +32,7 @@ export default async function AppLayout({
         {/* Topo mobile (a lateral some no md-) */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/88 px-4 py-2.5 shadow-sm backdrop-blur-xl md:hidden">
           <Link href="/" className="flex items-center">
-            <Logo markClassName="size-6" wordClassName="text-sm" />
+            <Logo markClassName="size-8" wordClassName="text-lg" />
           </Link>
           <Link
             href="/upload"

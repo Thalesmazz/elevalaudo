@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import {
   ArrowRight,
   Building2,
+  ChartColumn,
   CircleCheck,
   Clock,
   FileUp,
@@ -15,10 +16,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
+import { GraphModal } from "@/components/graph-modal";
 import { db } from "@/db";
 import { laudos, type Laudo } from "@/db/schema";
 import { getSessao } from "@/lib/auth/session";
 import { isEngenheiro } from "@/lib/auth/roles";
+import type { LaudoDaEmpresa } from "@/lib/empresas-db";
 import { statusConfig, type StatusGeral } from "@/lib/status";
 import { slugifyPredio } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
@@ -67,6 +70,32 @@ function totalNcDe(l: Laudo): number {
   );
 }
 
+function contagemNcDe(l: Laudo): LaudoDaEmpresa["contagem"] {
+  const c = { urgente: 0, atencao: 0, leve: 0, total: 0 };
+  for (const eq of l.extracao?.equipamentos ?? []) {
+    for (const nc of eq.naoConformidades) {
+      c[nc.severidade] += 1;
+      c.total += 1;
+    }
+  }
+  return c;
+}
+
+function laudoParaGrafico(l: Laudo): LaudoDaEmpresa {
+  const ex = l.extracao;
+  return {
+    id: l.id,
+    status: l.status,
+    titulo: ex?.predio.nome || l.fileName,
+    elevadores: ex?.equipamentos.map((e) => e.identificacao) ?? [],
+    dataInspecao: ex?.dataInspecao ?? null,
+    statusGeral: ex?.statusGeral ?? null,
+    contagem: contagemNcDe(l),
+    extraidoEmIso: l.extraidoEm ? l.extraidoEm.toISOString() : null,
+    criadoEmIso: l.createdAt.toISOString(),
+  };
+}
+
 export default async function LaudosPage() {
   const sessao = await getSessao();
   if (!sessao) redirect("/login");
@@ -77,30 +106,6 @@ export default async function LaudosPage() {
     .from(laudos)
     .where(eq(laudos.userId, sessao.user.id))
     .orderBy(desc(laudos.createdAt));
-
-  // Prédios com histórico = ≥2 laudos publicados com a mesma predio_key (têm
-  // "filme", não só "foto"). Vira atalho direto pra timeline (P5, ADR-007).
-  const historico = (() => {
-    const map = new Map<string, { nome: string; n: number; lastMs: number }>();
-    for (const l of rows) {
-      if (l.status !== "publicado" || !l.predioKey || !l.extracao) continue;
-      const ms = l.createdAt.getTime();
-      const cur = map.get(l.predioKey) ?? {
-        nome: l.extracao.predio.nome,
-        n: 0,
-        lastMs: 0,
-      };
-      cur.n += 1;
-      if (ms >= cur.lastMs) {
-        cur.lastMs = ms;
-        cur.nome = l.extracao.predio.nome;
-      }
-      map.set(l.predioKey, cur);
-    }
-    return [...map.entries()]
-      .filter(([, v]) => v.n >= 2)
-      .map(([key, v]) => ({ key, nome: v.nome, n: v.n }));
-  })();
 
   const ultima = rows[0] ?? null;
   // Fila = extrações ainda em andamento, exceto a última (que vira destaque).
@@ -121,6 +126,26 @@ export default async function LaudosPage() {
     }
     return [...map.entries()].map(([key, v]) => ({ key, ...v }));
   })();
+
+  const prediosComGraficos = grupos
+    .map((g) => {
+      const laudosGrafico = g.laudos
+        .filter((l) => l.extracao)
+        .map(laudoParaGrafico);
+      const publicados = g.laudos.filter(
+        (l) => l.status === "publicado" && l.predioKey,
+      );
+      const totalNc = laudosGrafico.reduce((n, l) => n + l.contagem.total, 0);
+      const recente = laudosGrafico[0] ?? null;
+      return {
+        ...g,
+        laudosGrafico,
+        publicados,
+        totalNc,
+        recente,
+      };
+    })
+    .filter((g) => g.laudosGrafico.length > 0);
 
   // KPIs de topo (visão data-dense): total, publicados, em andamento, prédios.
   const kpis = {
@@ -189,33 +214,68 @@ export default async function LaudosPage() {
         </div>
       )}
 
-      {/* Prédios com histórico */}
-      {historico.length > 0 ? (
+      {/* Gráficos por prédio */}
+      {prediosComGraficos.length > 0 ? (
         <Secao
-          titulo="Prédios com histórico"
-          Icon={History}
-          hint="Evolução das não-conformidades ao longo do tempo"
+          titulo="Gráficos por prédio"
+          Icon={ChartColumn}
+          hint="Clique no prédio para ver a visão geral ou selecionar extrações"
         >
           <div className="grid gap-3 lg:grid-cols-2">
-            {historico.map((h) => (
-              <Link
-                key={h.key}
-                href={`/predios/${h.key}`}
-                className="surface-panel group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/35"
+            {prediosComGraficos.map((g) => (
+              <div
+                key={g.key}
+                className="surface-panel flex items-center gap-2 rounded-2xl p-2 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/25 ring-1 ring-brand-green-strong/15">
-                  <History className="size-5 text-brand-green-strong" strokeWidth={2.25} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">
-                    {h.nome}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    Ver histórico · {h.n} laudos no tempo
-                  </span>
-                </span>
-                <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </Link>
+                <GraphModal
+                  empresaNome={g.nome}
+                  laudos={g.laudosGrafico}
+                  tituloGraficos={`Gráficos de ${g.nome}`}
+                  descricao={`${g.laudosGrafico.length} extração${g.laudosGrafico.length === 1 ? "" : "ões"} · ${g.totalNc} NCs`}
+                  initialView="graficos"
+                  defaultSelectedIds={g.laudosGrafico.map((l) => l.id)}
+                  emptyMessage="Nenhuma extração concluída ainda para este prédio."
+                >
+                  <button
+                    type="button"
+                    className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/35"
+                  >
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/25 ring-1 ring-brand-green-strong/15">
+                      <Building2
+                        className="size-5 text-brand-green-strong"
+                        strokeWidth={2.25}
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        {g.nome}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {g.laudosGrafico.length}{" "}
+                        {g.laudosGrafico.length === 1
+                          ? "extração"
+                          : "extrações"}{" "}
+                        · {g.totalNc} NCs
+                        {g.recente?.dataInspecao
+                          ? ` · última ${g.recente.dataInspecao}`
+                          : ""}
+                      </span>
+                    </span>
+                    <ChartColumn className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:scale-105" />
+                  </button>
+                </GraphModal>
+
+                {g.publicados.length >= 2 ? (
+                  <Link
+                    href={`/predios/${g.publicados[0].predioKey}`}
+                    aria-label={`Abrir histórico de ${g.nome}`}
+                    title={`Abrir histórico de ${g.nome}`}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35"
+                  >
+                    <History className="size-4" strokeWidth={2.25} />
+                  </Link>
+                ) : null}
+              </div>
             ))}
           </div>
         </Secao>

@@ -24,17 +24,31 @@ function fmtData(iso: string | null): string {
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 
+type GraphModalInitialView = "selecao" | "graficos";
+
 export function GraphModal({
   empresaNome,
   laudos,
+  tituloGraficos = "Gráficos",
+  descricao,
+  initialView = "selecao",
+  defaultSelectedIds = [],
+  emptyMessage = "Nenhuma extração concluída ainda para esta empresa.",
   children,
 }: {
   empresaNome: string;
   laudos: LaudoDaEmpresa[];
+  tituloGraficos?: string;
+  descricao?: string;
+  initialView?: GraphModalInitialView;
+  defaultSelectedIds?: string[];
+  emptyMessage?: string;
   children: React.ReactNode;
 }) {
-  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const [verGraficos, setVerGraficos] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(
+    () => new Set(defaultSelectedIds),
+  );
+  const [verGraficos, setVerGraficos] = useState(initialView === "graficos");
 
   // Só laudos com extração têm dados de NC para o gráfico.
   const comDados = useMemo(
@@ -66,7 +80,8 @@ export function GraphModal({
   }
 
   function reset() {
-    setVerGraficos(false);
+    setSelecionados(new Set(defaultSelectedIds));
+    setVerGraficos(initialView === "graficos");
   }
 
   return (
@@ -78,10 +93,10 @@ export function GraphModal({
           <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
             <div className="min-w-0">
               <Dialog.Title className="truncate text-sm font-semibold">
-                {verGraficos ? "Gráficos" : "Selecionar extrações"}
+                {verGraficos ? tituloGraficos : "Selecionar extrações"}
               </Dialog.Title>
               <Dialog.Description className="truncate text-xs text-muted-foreground">
-                {empresaNome}
+                {descricao ?? empresaNome}
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -100,16 +115,22 @@ export function GraphModal({
                 className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ArrowLeft className="size-3.5" />
-                Voltar à seleção
+                Selecionar extrações
               </button>
-              <NcCharts data={dados} />
+              {dados.length > 0 ? (
+                <NcCharts data={dados} />
+              ) : (
+                <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                  Selecione pelo menos uma extração para visualizar os gráficos.
+                </p>
+              )}
             </div>
           ) : (
             <>
               <div className="flex-1 overflow-y-auto p-4">
                 {comDados.length === 0 ? (
                   <p className="px-1 py-8 text-center text-sm text-muted-foreground">
-                    Nenhuma extração concluída ainda para esta empresa.
+                    {emptyMessage}
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-2">
