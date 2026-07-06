@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -71,7 +72,13 @@ export const laudos = pgTable("laudos", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (t) => [
+  // Colunas de filtro das queries quentes: "meus laudos" e lateral (userId),
+  // agrupamento por cliente (empresaId), timeline do prédio (predioKey).
+  index("laudos_user_id_idx").on(t.userId),
+  index("laudos_empresa_id_idx").on(t.empresaId),
+  index("laudos_predio_key_idx").on(t.predioKey),
+]);
 
 export type Laudo = typeof laudos.$inferSelect;
 export type NovoLaudo = typeof laudos.$inferInsert;
@@ -151,7 +158,7 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (t) => [index("sessions_user_id_idx").on(t.userId)]);
 
 export type Session = typeof sessions.$inferSelect;
 
@@ -197,7 +204,21 @@ export const conexoes = pgTable("conexoes", {
     .notNull()
     .defaultNow(),
   conectadoEm: timestamp("conectado_em", { withTimezone: true }),
-});
+}, (t) => [
+  index("conexoes_engenheiro_idx").on(t.engenheiroUserId),
+  index("conexoes_administracao_idx").on(t.administracaoUserId),
+]);
 
 export type Conexao = typeof conexoes.$inferSelect;
 export type NovaConexao = typeof conexoes.$inferInsert;
+
+// Rate limiting fixed-window em Postgres (sem Redis — auditoria 2026-07). Uma
+// linha por chave "{escopo}:{id}" (ex.: "chat-pub:<token>", "login-ip:<ip>").
+// O upsert atômico de 1 statement (INSERT ... ON CONFLICT) funciona no driver
+// neon-http, que não suporta transação interativa. Linhas velhas são varridas
+// pelo cron diário.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull().default(0),
+});
