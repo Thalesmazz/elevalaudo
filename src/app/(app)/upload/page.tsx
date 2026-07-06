@@ -7,6 +7,9 @@ import { getEmpresasSimples } from "@/lib/empresas-db";
 import { UploadForm } from "./upload-form";
 
 export const dynamic = "force-dynamic";
+// Teto do plano Hobby. A extração (after() na action de upload) roda dentro da
+// vida desta function — haiku + retry sonnet num PDF grande precisa da folga.
+export const maxDuration = 60;
 
 export default async function UploadPage({
   searchParams,

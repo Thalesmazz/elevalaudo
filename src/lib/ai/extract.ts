@@ -11,12 +11,13 @@ import { laudoSchema, type LaudoExtraido } from "@/lib/schema/laudo";
 //
 // Escopo = 1 formato fixo (modelo RIA/INSS), então um modelo barato + system
 // prompt que conhece o layout extrai tão bem quanto um grande. Padrão: haiku
-// (barato, rápido, e roda no free-tier). Fallback: opus pra laudo difícil /
-// escaneado ruim. Ambos sobrescrevíveis por env.
+// (barato, rápido, e roda no free-tier). Fallback: sonnet pra laudo difícil /
+// escaneado ruim — opus-4.8 dá 403 no free-tier do Gateway (verificado
+// 2026-07), então era um fallback morto. Ambos sobrescrevíveis por env.
 const MODELO_PRIMARIO =
   process.env.ELEVALAUDO_MODEL ?? "anthropic/claude-haiku-4.5";
 const MODELO_FALLBACK =
-  process.env.ELEVALAUDO_MODEL_FALLBACK ?? "anthropic/claude-opus-4.8";
+  process.env.ELEVALAUDO_MODEL_FALLBACK ?? "anthropic/claude-sonnet-5";
 
 // Abaixo disto consideramos o PDF "escaneado" (sem camada de texto útil) e
 // mandamos o arquivo direto pro modelo (visão), sem OCR separado.
@@ -89,7 +90,12 @@ export async function extrairLaudoDePdf(
     return { data, modo, modelo: MODELO_PRIMARIO };
   } catch (err) {
     if (MODELO_FALLBACK === MODELO_PRIMARIO) throw err;
-    // Laudo difícil pro modelo barato → tenta o grande.
+    // Laudo difícil pro modelo barato → tenta o grande. Logar o erro do
+    // primário: sem isso, quando o fallback também falha só se vê o 2º erro.
+    console.error(
+      `[extract] ${MODELO_PRIMARIO} falhou (tentando ${MODELO_FALLBACK}):`,
+      err,
+    );
     const data = await gerar(MODELO_FALLBACK, messages);
     return { data, modo, modelo: MODELO_FALLBACK };
   }

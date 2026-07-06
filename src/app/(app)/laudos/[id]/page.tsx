@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Download, History } from "lucide-react";
+import { Download, History, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { StatusHero } from "@/components/dashboard/status-hero";
@@ -17,6 +17,7 @@ import { getLaudoAcessivelPorUsuario } from "@/lib/laudo-access";
 import { sharePath } from "@/lib/share";
 import { slugifyPredio } from "@/lib/timeline";
 import { contarPublicadosDoPredios } from "@/lib/timeline-db";
+import { reprocessarLaudo } from "../actions";
 import { AutoRefresh } from "./auto-refresh";
 
 const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
@@ -110,7 +111,9 @@ export default async function LaudoPage({
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8 sm:py-12">
-      {laudo.status === "extraindo" ? <AutoRefresh /> : null}
+      {laudo.status === "extraindo" && !laudo.erroExtracao ? (
+        <AutoRefresh />
+      ) : null}
 
       <BrandHeader branding={branding} />
 
@@ -139,7 +142,29 @@ export default async function LaudoPage({
         ) : null}
       </div>
 
-      {laudo.status === "extraindo" ? (
+      {laudo.status === "extraindo" && laudo.erroExtracao ? (
+        // Extração falhou: sem isto o laudo ficava no spinner pra sempre
+        // (o erro só aparecia depois de sair de `extraindo` — ou seja, nunca).
+        <div className="surface-panel rounded-2xl p-4">
+          <p className="text-sm font-semibold">Falha na extração</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Não conseguimos ler este PDF. Pode ser instabilidade momentânea —
+            vale tentar de novo.
+          </p>
+          <p className="mt-2 text-sm text-red-600 break-words">
+            {laudo.erroExtracao}
+          </p>
+          {laudoProprio ? (
+            <form action={reprocessarLaudo} className="mt-3">
+              <input type="hidden" name="id" value={laudo.id} />
+              <Button type="submit" variant="outline" size="sm">
+                <RotateCcw className="size-4" aria-hidden />
+                Tentar novamente
+              </Button>
+            </form>
+          ) : null}
+        </div>
+      ) : laudo.status === "extraindo" ? (
         <ExtractionLoading fileName={laudo.fileName} />
       ) : (
         <div className="surface-panel rounded-2xl p-4">
