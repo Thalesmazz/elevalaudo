@@ -152,14 +152,30 @@ export async function conectarPorCodigo(
     return { erro: "Você já está conectado a este engenheiro." };
   }
 
-  await db
+  // UPDATE condicional atômico (auditoria 2026-07): o WHERE re-checa
+  // `pendente` + sem administração, então dois admins reivindicando o mesmo
+  // código ao mesmo tempo têm exatamente 1 vencedor — sem transação (o driver
+  // neon-http não suporta). Os pré-checks acima são só UX; a corrida residual
+  // de vínculo duplicado é benigna (getEngenheirosConectadosIds deduplica).
+  const [vinculada] = await db
     .update(conexoes)
     .set({
       administracaoUserId: adminUserId,
       status: "ativa",
       conectadoEm: new Date(),
     })
-    .where(eq(conexoes.id, convite.id));
+    .where(
+      and(
+        eq(conexoes.id, convite.id),
+        eq(conexoes.status, "pendente"),
+        isNull(conexoes.administracaoUserId),
+      ),
+    )
+    .returning({ id: conexoes.id });
+
+  if (!vinculada) {
+    return { erro: "Código inválido ou já utilizado." };
+  }
 
   const [eng] = await db
     .select({ nome: users.nome })
