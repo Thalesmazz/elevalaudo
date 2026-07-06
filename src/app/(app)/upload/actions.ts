@@ -3,13 +3,13 @@
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { head } from "@vercel/blob";
-import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { empresas, laudos } from "@/db/schema";
+import { laudos } from "@/db/schema";
 import { getSessao } from "@/lib/auth/session";
 import { processarLaudo } from "@/lib/ai/process";
 import { MAX_PDF_BYTES, PDF_MIME } from "@/lib/blob";
+import { resolverEmpresaDoForm } from "@/lib/empresa-resolver";
 
 export type UploadState = { erro?: string };
 
@@ -48,35 +48,9 @@ export async function registrarLaudoEnviado(
   const id = idMatch[1];
 
   // Empresa: id existente OU nome de uma nova. Sem empresa não dá pra agrupar.
-  const empresaIdRaw = (formData.get("empresaId") as string | null)?.trim();
-  const empresaNomeRaw = (
-    formData.get("empresaNome") as string | null
-  )?.trim();
-
-  let empresaId: string;
-  if (empresaIdRaw) {
-    // Confere que a empresa pertence ao usuário (evita id forjado).
-    const [dono] = await db
-      .select({ id: empresas.id })
-      .from(empresas)
-      .where(
-        and(
-          eq(empresas.id, empresaIdRaw),
-          eq(empresas.ownerUserId, sessao.user.id),
-        ),
-      )
-      .limit(1);
-    if (!dono) return { erro: "Empresa inválida." };
-    empresaId = empresaIdRaw;
-  } else if (empresaNomeRaw && empresaNomeRaw.length >= 2) {
-    const [nova] = await db
-      .insert(empresas)
-      .values({ nome: empresaNomeRaw, ownerUserId: sessao.user.id })
-      .returning({ id: empresas.id });
-    empresaId = nova.id;
-  } else {
-    return { erro: "Escolha ou crie uma empresa para a extração." };
-  }
+  const resolvida = await resolverEmpresaDoForm(sessao.user.id, formData);
+  if (resolvida.erro) return { erro: resolvida.erro };
+  const empresaId = resolvida.empresaId;
 
   // Confere o blob de verdade — tipo e tamanho vêm do storage, não do form.
   let fileSize: number;

@@ -2,73 +2,30 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import {
-  ArrowRight,
   Building2,
-  ChartColumn,
   CircleCheck,
   Clock,
+  FilePen,
   FileUp,
   Files,
-  History,
   Inbox,
-  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
-import { GraphModal } from "@/components/graph-modal";
+import {
+  GraficosPorPredio,
+  type PredioCardData,
+} from "@/components/dashboard/graficos-por-predio";
 import { db } from "@/db";
 import { laudos, type Laudo } from "@/db/schema";
 import { getSessao } from "@/lib/auth/session";
 import { isEngenheiro } from "@/lib/auth/roles";
-import type { LaudoDaEmpresa } from "@/lib/empresas-db";
-import { statusConfig, type StatusGeral } from "@/lib/status";
+import { getEmpresasDoUsuario, type LaudoDaEmpresa } from "@/lib/empresas-db";
 import { slugifyPredio } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
+import { StatusTabs } from "./status-tabs";
 
 export const dynamic = "force-dynamic";
-
-// Estado do fluxo do laudo (extraindo → revisar → publicado). Diferente do RAG
-// (statusGeral) — aqui é onde o laudo está no processo, não a gravidade.
-const FLUXO: Record<string, { label: string; cls: string }> = {
-  extraindo: {
-    label: "Extraindo",
-    cls: "bg-muted text-muted-foreground ring-border",
-  },
-  revisar: {
-    label: "Revisar",
-    cls: "bg-amber-400/10 text-amber-700 ring-amber-500/25 dark:text-amber-400",
-  },
-  publicado: {
-    label: "Publicado",
-    cls: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-400",
-  },
-};
-
-function fluxoDoLaudo(status: string, engenheiro: boolean) {
-  if (status === "revisar" && !engenheiro) {
-    return {
-      label: "Extraído",
-      cls: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-400",
-    };
-  }
-
-  return (
-    FLUXO[status] ?? {
-      label: status,
-      cls: "bg-muted text-muted-foreground ring-border",
-    }
-  );
-}
-
-function totalNcDe(l: Laudo): number {
-  return (
-    l.extracao?.equipamentos.reduce(
-      (n, eq) => n + eq.naoConformidades.length,
-      0,
-    ) ?? 0
-  );
-}
 
 function contagemNcDe(l: Laudo): LaudoDaEmpresa["contagem"] {
   const c = { urgente: 0, atencao: 0, leve: 0, total: 0 };
@@ -86,7 +43,7 @@ function laudoParaGrafico(l: Laudo): LaudoDaEmpresa {
   return {
     id: l.id,
     status: l.status,
-    titulo: ex?.predio.nome || l.fileName,
+    titulo: ex?.predio.nome || l.fileName || "Rascunho sem título",
     elevadores: ex?.equipamentos.map((e) => e.identificacao) ?? [],
     dataInspecao: ex?.dataInspecao ?? null,
     statusGeral: ex?.statusGeral ?? null,
@@ -107,18 +64,16 @@ export default async function LaudosPage() {
     .where(eq(laudos.userId, sessao.user.id))
     .orderBy(desc(laudos.createdAt));
 
-  const ultima = rows[0] ?? null;
-  // Fila = extrações ainda em andamento, exceto a última (que vira destaque).
-  const fila = rows
-    .slice(1)
-    .filter((l) => l.status === "extraindo" || (engenheiro && l.status === "revisar"));
+  // Empresas → laudos: alimenta a visão "Por empresa" dos gráficos. Só traz
+  // laudos COM empresa (os órfãos/legados seguem só no flat, montado de `rows`).
+  const empresas = await getEmpresasDoUsuario(sessao.user.id);
 
   // Arquivo por prédio: o nome do prédio aparece UMA vez, com as extrações
   // datadas embaixo (resolve a repetição). Mais recente primeiro dentro do grupo.
   const grupos = (() => {
     const map = new Map<string, { nome: string; laudos: Laudo[] }>();
     for (const l of rows) {
-      const nome = l.extracao?.predio.nome || l.fileName;
+      const nome = l.extracao?.predio.nome || l.fileName || "Rascunho sem título";
       const key = slugifyPredio(nome) || l.id;
       const g = map.get(key) ?? { nome, laudos: [] };
       g.laudos.push(l);
@@ -147,12 +102,27 @@ export default async function LaudosPage() {
     })
     .filter((g) => g.laudosGrafico.length > 0);
 
+  // Achata os grupos de prédio pro shape serializável do componente client
+  // (colapsa o `publicados: Laudo[]` server-only numa string de predioKey).
+  const prediosCardData: PredioCardData[] = prediosComGraficos.map((g) => ({
+    key: g.key,
+    nome: g.nome,
+    laudos: g.laudosGrafico,
+    totalNc: g.totalNc,
+    temHistorico: g.publicados.length >= 2,
+    predioKey: g.publicados[0]?.predioKey ?? null,
+    ultimaData: g.recente?.dataInspecao ?? null,
+  }));
+
   // KPIs de topo (visão data-dense): total, publicados, em andamento, prédios.
   const kpis = {
     total: rows.length,
     publicados: rows.filter((l) => l.status === "publicado").length,
     andamento: rows.filter(
-      (l) => l.status === "extraindo" || (engenheiro && l.status === "revisar"),
+      (l) =>
+        l.status === "extraindo" ||
+        l.status === "rascunho" ||
+        (engenheiro && l.status === "revisar"),
     ).length,
     predios: grupos.length,
   };
@@ -173,14 +143,27 @@ export default async function LaudosPage() {
               : ". Envie o primeiro PDF para montar o painel."}
           </p>
         </div>
-        <Button
-          nativeButton={false}
-          render={<Link href="/upload" />}
-          className="h-10 px-3.5"
-        >
-          <FileUp className="size-4" strokeWidth={2.25} />
-          Nova extração
-        </Button>
+        <div className="flex items-center gap-2">
+          {engenheiro ? (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/laudos/novo" />}
+              className="h-10 px-3.5"
+            >
+              <FilePen className="size-4" strokeWidth={2.25} />
+              Novo laudo
+            </Button>
+          ) : null}
+          <Button
+            nativeButton={false}
+            render={<Link href="/upload" />}
+            className="h-10 px-3.5"
+          >
+            <FileUp className="size-4" strokeWidth={2.25} />
+            Nova extração
+          </Button>
+        </div>
       </div>
 
       {rows.length === 0 ? (
@@ -195,10 +178,22 @@ export default async function LaudosPage() {
               não-conformidades e resumo pronto para revisão.
             </p>
           </div>
-          <Button nativeButton={false} render={<Link href="/upload" />}>
-            <FileUp className="size-4" strokeWidth={2.25} />
-            Enviar primeiro laudo
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button nativeButton={false} render={<Link href="/upload" />}>
+              <FileUp className="size-4" strokeWidth={2.25} />
+              Enviar primeiro laudo
+            </Button>
+            {engenheiro ? (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/laudos/novo" />}
+              >
+                <FilePen className="size-4" strokeWidth={2.25} />
+                ou monte um laudo manualmente
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -214,150 +209,20 @@ export default async function LaudosPage() {
         </div>
       )}
 
-      {/* Gráficos por prédio */}
+      {/* Gráficos por prédio — flat "Todos" ou hierarquia "Por empresa" */}
       {prediosComGraficos.length > 0 ? (
-        <Secao
-          titulo="Gráficos por prédio"
-          Icon={ChartColumn}
-          hint="Clique no prédio para ver a visão geral ou selecionar extrações"
-        >
-          <div className="grid gap-3 lg:grid-cols-2">
-            {prediosComGraficos.map((g) => (
-              <div
-                key={g.key}
-                className="surface-panel flex items-center gap-2 rounded-2xl p-2 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md"
-              >
-                <GraphModal
-                  empresaNome={g.nome}
-                  laudos={g.laudosGrafico}
-                  tituloGraficos={`Gráficos de ${g.nome}`}
-                  descricao={`${g.laudosGrafico.length} extração${g.laudosGrafico.length === 1 ? "" : "ões"} · ${g.totalNc} NCs`}
-                  initialView="graficos"
-                  defaultSelectedIds={g.laudosGrafico.map((l) => l.id)}
-                  emptyMessage="Nenhuma extração concluída ainda para este prédio."
-                >
-                  <button
-                    type="button"
-                    className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/35"
-                  >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/25 ring-1 ring-brand-green-strong/15">
-                      <Building2
-                        className="size-5 text-brand-green-strong"
-                        strokeWidth={2.25}
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">
-                        {g.nome}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {g.laudosGrafico.length}{" "}
-                        {g.laudosGrafico.length === 1
-                          ? "extração"
-                          : "extrações"}{" "}
-                        · {g.totalNc} NCs
-                        {g.recente?.dataInspecao
-                          ? ` · última ${g.recente.dataInspecao}`
-                          : ""}
-                      </span>
-                    </span>
-                    <ChartColumn className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:scale-105" />
-                  </button>
-                </GraphModal>
-
-                {g.publicados.length >= 2 ? (
-                  <Link
-                    href={`/predios/${g.publicados[0].predioKey}`}
-                    aria-label={`Abrir histórico de ${g.nome}`}
-                    title={`Abrir histórico de ${g.nome}`}
-                    className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35"
-                  >
-                    <History className="size-4" strokeWidth={2.25} />
-                  </Link>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </Secao>
+        <GraficosPorPredio predios={prediosCardData} empresas={empresas} />
       ) : null}
 
-      {/* Última extração (destaque) */}
-      {ultima ? (
-        <Secao titulo="Última extração" Icon={Sparkles}>
-          <CardLaudo laudo={ultima} engenheiro={engenheiro} destaque />
-        </Secao>
-      ) : null}
-
-      {/* Fila / em andamento */}
-      {fila.length > 0 ? (
-        <Secao
-          titulo="Em andamento"
-          Icon={Clock}
-          hint={`${fila.length} ${fila.length === 1 ? "extração" : "extrações"} aguardando`}
-        >
-          <ul className="flex flex-col gap-2.5">
-            {fila.map((l) => (
-              <li key={l.id}>
-                <CardLaudo laudo={l} engenheiro={engenheiro} />
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      ) : null}
-
-      {/* Arquivo completo, por prédio */}
+      {/* Status: Todos / Publicados / Aguardando revisão / Rascunhos */}
       {rows.length > 0 ? (
-        <Secao titulo="Todos os laudos" Icon={Inbox} hint="Organizados por prédio">
-          <div className="flex flex-col gap-6">
-            {grupos.map((g) => (
-              <div key={g.key} className="space-y-2.5">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <span className="size-1.5 rounded-full bg-brand-green-strong" aria-hidden />
-                  {g.nome}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {g.laudos.length} {g.laudos.length === 1 ? "laudo" : "laudos"}
-                  </span>
-                </h3>
-                <ul className="flex flex-col gap-2.5">
-                  {g.laudos.map((l) => (
-                    <li key={l.id}>
-                      <CardLaudo laudo={l} engenheiro={engenheiro} semTitulo />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Secao>
+        <StatusTabs
+          rows={rows}
+          engenheiro={engenheiro}
+          empresas={empresas.map((e) => ({ id: e.id, nome: e.nome }))}
+        />
       ) : null}
     </main>
-  );
-}
-
-function Secao({
-  titulo,
-  Icon,
-  hint,
-  children,
-}: {
-  titulo: string;
-  Icon: typeof History;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
-          <Icon className="size-4 text-brand-green-strong" strokeWidth={2.25} />
-          {titulo}
-        </h2>
-        {hint ? (
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        ) : null}
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -395,94 +260,6 @@ function Kpi({
       <span className="text-3xl font-semibold tracking-tight tabular-nums">
         {valor}
       </span>
-    </div>
-  );
-}
-
-/**
- * Card de um laudo. Usa o padrão "stretched link" (link absoluto cobrindo o
- * card) para o card inteiro ser clicável sem aninhar o botão de excluir dentro
- * de um <a> (HTML inválido). `semTitulo` esconde o nome do prédio (já mostrado
- * no cabeçalho do grupo); `destaque` usa um visual maior.
- */
-function CardLaudo({
-  laudo,
-  engenheiro,
-  destaque = false,
-  semTitulo = false,
-}: {
-  laudo: Laudo;
-  engenheiro: boolean;
-  destaque?: boolean;
-  semTitulo?: boolean;
-}) {
-  const fluxo = fluxoDoLaudo(laudo.status, engenheiro);
-  const extracao = laudo.extracao;
-  const titulo = extracao?.predio.nome || laudo.fileName;
-  const totalNc = totalNcDe(laudo);
-  const rag = extracao?.statusGeral as StatusGeral | undefined;
-  const ragCfg = rag ? statusConfig[rag] : null;
-
-  return (
-    <div
-      className={cn(
-        "surface-panel group relative flex items-center gap-4 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:border-brand-green-strong/40 hover:shadow-md",
-        destaque
-          ? "border-brand-green-strong/30 bg-brand-green/10"
-          : "border-border",
-      )}
-    >
-      <Link
-        href={`/laudos/${laudo.id}`}
-        className="absolute inset-0 rounded-2xl focus-visible:ring-3 focus-visible:ring-ring/35"
-        aria-label={`Abrir laudo ${titulo}`}
-      />
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-              fluxo.cls,
-            )}
-          >
-            {fluxo.label}
-          </span>
-          {ragCfg ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 text-xs font-medium",
-                ragCfg.accent,
-              )}
-            >
-              <ragCfg.Icon className="size-3.5" strokeWidth={2.25} />
-              {ragCfg.label}
-            </span>
-          ) : null}
-        </div>
-        {!semTitulo ? (
-          <p
-            className={cn(
-              "truncate font-medium text-foreground",
-              destaque ? "text-base" : "text-sm",
-            )}
-          >
-            {titulo}
-          </p>
-        ) : null}
-        <p className="truncate text-xs text-muted-foreground">
-          {extracao?.dataInspecao ? `Inspeção ${extracao.dataInspecao} · ` : ""}
-          {totalNc} {totalNc === 1 ? "não-conformidade" : "não-conformidades"}
-          {" · "}
-          enviado {laudo.createdAt.toLocaleDateString("pt-BR")}
-        </p>
-      </div>
-      <DeleteLaudoButton
-        id={laudo.id}
-        publicado={laudo.status === "publicado"}
-        variant="icon"
-        className="relative z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-      />
-      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </div>
   );
 }

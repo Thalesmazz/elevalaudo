@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Palette } from "lucide-react";
+import { FilePen, Palette } from "lucide-react";
 
 import { getSessao } from "@/lib/auth/session";
+import { isEngenheiro } from "@/lib/auth/roles";
 import { getEmpresasSimples } from "@/lib/empresas-db";
 import { UploadForm } from "./upload-form";
 
@@ -18,6 +19,7 @@ export default async function UploadPage({
 }) {
   const sessao = await getSessao();
   if (!sessao) redirect("/login");
+  const engenheiro = isEngenheiro(sessao.user.role);
 
   const { empresaId } = await searchParams;
   const empresas = await getEmpresasSimples(sessao.user.id);
@@ -38,17 +40,28 @@ export default async function UploadPage({
         </p>
       </div>
 
-      <div className="surface-panel rounded-2xl p-5 sm:p-6">
+      <div className="surface-panel rounded-2xl p-5 transition-shadow focus-within:ring-3 focus-within:ring-ring/35 sm:p-6">
         <UploadForm empresas={empresas} empresaInicialId={empresaInicialId} />
       </div>
 
-      <Link
-        href="/produtor"
-        className="inline-flex w-fit items-center gap-1.5 rounded-lg text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35"
-      >
-        <Palette className="size-4" />
-        Personalizar a marca da sua consultoria
-      </Link>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {engenheiro ? (
+          <Link
+            href="/laudos/novo"
+            className="inline-flex w-fit items-center gap-1.5 rounded-lg text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35"
+          >
+            <FilePen className="size-4" />
+            Não tem o PDF? Monte o laudo manualmente
+          </Link>
+        ) : null}
+        <Link
+          href="/produtor"
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/35"
+        >
+          <Palette className="size-4" />
+          Personalizar a marca da sua consultoria
+        </Link>
+      </div>
     </main>
   );
 }

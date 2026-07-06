@@ -7,15 +7,14 @@ import { getSessao } from "@/lib/auth/session";
 import { podeEditarLaudo } from "@/lib/auth/roles";
 import { LaudoForm } from "@/components/dashboard/laudo-form";
 
-export default async function RevisarPage({
+export default async function EditarLaudoManualPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
-  // RBAC: só o engenheiro edita/assina. A administração (síndico) é mandada de
-  // volta pro dashboard de leitura.
+  // RBAC: só o engenheiro monta/edita laudo manual (liability, ADR-002).
   const sessao = await getSessao();
   if (!sessao) redirect("/login");
   if (!podeEditarLaudo(sessao.user.role)) redirect(`/laudos/${id}`);
@@ -24,18 +23,16 @@ export default async function RevisarPage({
   if (!laudo) notFound();
   if (laudo.userId !== sessao.user.id) notFound();
 
-  // Só dá pra revisar o que já foi extraído e ainda não publicado.
-  if (laudo.status !== "revisar" || !laudo.extracao) {
-    redirect(`/laudos/${id}`);
-  }
+  // Só dá pra continuar montando o que ainda é rascunho.
+  if (laudo.status !== "rascunho") redirect(`/laudos/${id}`);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
       <LaudoForm
         id={id}
         inicial={laudo.extracao}
-        modo="revisar"
-        temPdfOriginal={Boolean(laudo.blobPathname)}
+        modo="manual"
+        temPdfOriginal={false}
       />
     </main>
   );

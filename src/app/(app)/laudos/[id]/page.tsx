@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Download, History, RotateCcw } from "lucide-react";
+import { BadgeCheck, Download, History, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { StatusHero } from "@/components/dashboard/status-hero";
@@ -10,6 +10,7 @@ import { BrandHeader } from "@/components/dashboard/brand-header";
 import { LaudoChat } from "@/components/dashboard/laudo-chat";
 import { DeleteLaudoButton } from "@/components/dashboard/delete-laudo-button";
 import { ExtractionLoading } from "@/components/dashboard/extraction-loading";
+import { ShareLinkActions } from "@/components/dashboard/share-link-actions";
 import { getBranding } from "@/lib/branding";
 import { getSessao } from "@/lib/auth/session";
 import { isEngenheiro } from "@/lib/auth/roles";
@@ -21,6 +22,10 @@ import { reprocessarLaudo } from "../actions";
 import { AutoRefresh } from "./auto-refresh";
 
 const STATUS_LABEL: Record<string, { label: string; hint: string }> = {
+  rascunho: {
+    label: "Rascunho",
+    hint: "Laudo em edição manual. Continue preenchendo antes de publicar.",
+  },
   extraindo: {
     label: "Extraindo",
     hint: "Lendo o PDF e estruturando os dados do laudo…",
@@ -123,7 +128,7 @@ export default async function LaudoPage({
             Laudo
           </p>
           <h1 className="text-2xl font-semibold tracking-tight break-all sm:text-3xl">
-            {laudo.fileName}
+            {extracao?.predio.nome || laudo.fileName || "Rascunho"}
           </h1>
           {extracao ? (
             <p className="text-sm text-muted-foreground">
@@ -136,6 +141,7 @@ export default async function LaudoPage({
           <DeleteLaudoButton
             id={laudo.id}
             publicado={laudo.status === "publicado"}
+            temPdf={Boolean(laudo.blobUrl)}
             variant="icon"
             className="mt-0.5 shrink-0"
           />
@@ -165,7 +171,7 @@ export default async function LaudoPage({
           ) : null}
         </div>
       ) : laudo.status === "extraindo" ? (
-        <ExtractionLoading fileName={laudo.fileName} />
+        <ExtractionLoading fileName={laudo.fileName ?? "laudo.pdf"} />
       ) : (
         <div className="surface-panel rounded-2xl p-4">
           <p className="text-sm font-semibold">{status.label}</p>
@@ -182,7 +188,9 @@ export default async function LaudoPage({
         </div>
       )}
 
-      {extracao ? (
+      {/* Enquanto ainda é rascunho, não mostra o dashboard pela metade —
+          mesmo que já tenha algum campo salvo via "Salvar rascunho". */}
+      {extracao && laudo.status !== "rascunho" ? (
         <>
           <StatusHero
             status={extracao.statusGeral}
@@ -224,56 +232,57 @@ export default async function LaudoPage({
         </>
       ) : null}
 
-      {extracao ? (
-        <Button
-          nativeButton={false}
-          render={<Link href={`/laudos/${id}/exportar`} />}
-        >
-          <Download className="size-4" strokeWidth={2.25} />
-          Baixar PDF do laudo
-        </Button>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {extracao && laudo.status !== "rascunho" ? (
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/laudos/${id}/exportar`} />}
+          >
+            <Download className="size-4" strokeWidth={2.25} />
+            Baixar PDF do laudo
+          </Button>
+        ) : null}
 
-      {laudo.status === "revisar" && engenheiro ? (
-        <Button
-          nativeButton={false}
-          render={<Link href={`/laudos/${id}/revisar`} />}
-        >
-          Revisar e assinar
-        </Button>
-      ) : null}
+        {laudo.status === "revisar" && engenheiro ? (
+          <Button
+            nativeButton={false}
+            render={<Link href={`/laudos/${id}/revisar`} />}
+          >
+            Revisar e assinar
+          </Button>
+        ) : null}
+
+        {laudo.status === "rascunho" && engenheiro ? (
+          <Button nativeButton={false} render={<Link href={`/laudos/${id}/novo`} />}>
+            Continuar preenchendo
+          </Button>
+        ) : null}
+      </div>
 
       {laudo.status === "publicado" ? (
-        <div className="space-y-3 rounded-2xl border border-emerald-300/70 bg-emerald-50/90 p-4 text-sm text-emerald-950 shadow-sm">
-          <div className="space-y-1">
-            <p className="font-medium">Revisado e assinado</p>
-            <p>
-              {laudo.assinanteNome}
-              {laudo.assinanteCrea ? ` · ${laudo.assinanteCrea}` : ""}
-              {laudo.publicadoEm
-                ? ` · ${laudo.publicadoEm.toLocaleDateString("pt-BR")}`
-                : ""}
-            </p>
+        <div className="surface-panel space-y-3 rounded-2xl p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <BadgeCheck className="size-4.5" strokeWidth={2.25} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Revisado e assinado</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {laudo.assinanteNome}
+                {laudo.assinanteCrea ? ` · ${laudo.assinanteCrea}` : ""}
+                {laudo.publicadoEm
+                  ? ` · ${laudo.publicadoEm.toLocaleDateString("pt-BR")}`
+                  : ""}
+              </p>
+            </div>
           </div>
           {laudo.shareToken ? (
-            <div className="space-y-1 border-t border-emerald-300/70 pt-3">
-              <p className="font-medium">Link público para o síndico</p>
-              <p className="text-emerald-900/75">
-                Sem login — quem tem o link vê o laudo. Mande no WhatsApp.
-              </p>
-              <a
-                href={sharePath(laudo.shareToken)}
-                className="block truncate font-mono text-xs break-all text-emerald-950 underline underline-offset-4"
-              >
-                {sharePath(laudo.shareToken)}
-              </a>
-              <a
-                href={`${sharePath(laudo.shareToken)}/pdf`}
-                className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-950 transition-colors hover:bg-emerald-100"
-              >
-                <Download className="size-3.5" strokeWidth={2} />
-                Baixar PDF branded
-              </a>
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <ShareLinkActions
+                shareUrl={sharePath(laudo.shareToken)}
+                pdfUrl={`${sharePath(laudo.shareToken)}/pdf`}
+              />
             </div>
           ) : null}
         </div>

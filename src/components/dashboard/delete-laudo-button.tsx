@@ -16,11 +16,14 @@ import { cn } from "@/lib/utils";
 export function DeleteLaudoButton({
   id,
   publicado = false,
+  temPdf = true,
   variant = "button",
   className,
 }: {
   id: string;
   publicado?: boolean;
+  /** `false` pra laudo `rascunho` montado manualmente (nunca teve PDF). */
+  temPdf?: boolean;
   variant?: "button" | "icon";
   className?: string;
 }) {
@@ -69,8 +72,11 @@ export function DeleteLaudoButton({
                 Excluir esta extração?
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                Esta ação é permanente — o PDF e os dados extraídos serão
-                removidos.
+                Esta ação é permanente —{" "}
+                {temPdf
+                  ? "o PDF e os dados extraídos serão removidos"
+                  : "os dados do rascunho serão removidos"}
+                .
                 {publicado ? (
                   <>
                     {" "}

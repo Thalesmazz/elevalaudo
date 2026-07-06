@@ -39,7 +39,8 @@ export async function excluirLaudo(
     return { erro: "Você não tem permissão para excluir esta extração." };
   }
 
-  await deleteLaudoPdf(laudo.blobUrl);
+  // Laudo montado manualmente (`rascunho`) não tem PDF no Blob.
+  if (laudo.blobUrl) await deleteLaudoPdf(laudo.blobUrl);
   await db.delete(laudos).where(eq(laudos.id, id));
 
   revalidatePath("/laudos", "layout");

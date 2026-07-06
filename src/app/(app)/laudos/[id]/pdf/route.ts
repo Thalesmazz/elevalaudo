@@ -22,12 +22,17 @@ export async function GET(
 
   const { laudo } = acesso;
 
+  // Laudo montado manualmente (`rascunho`/sem upload) não tem PDF original.
+  if (!laudo.blobPathname) {
+    return new Response("Este laudo não tem PDF original", { status: 404 });
+  }
+
   const bytes = await downloadLaudoPdf(laudo.blobPathname);
 
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${encodeURIComponent(laudo.fileName)}"`,
+      "Content-Disposition": `inline; filename="${encodeURIComponent(laudo.fileName ?? "laudo.pdf")}"`,
       "Cache-Control": "private, no-store",
       "X-Robots-Tag": "noindex",
     },

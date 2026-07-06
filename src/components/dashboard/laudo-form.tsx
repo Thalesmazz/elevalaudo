@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { laudoSchema, type LaudoExtraido } from "@/lib/schema/laudo";
-import { aprovarLaudo } from "./actions";
+import { aprovarLaudo, salvarRascunho } from "@/lib/laudo-actions";
 
 type NcDraft = {
   descricao: string;
@@ -31,7 +31,16 @@ type Draft = {
 const SEVERIDADES = ["urgente", "atencao", "leve"];
 const STATUS_GERAL = ["seguro", "atencao", "urgente"];
 
-function paraDraft(e: LaudoExtraido): Draft {
+const DRAFT_VAZIO: Draft = {
+  predio: { nome: "", endereco: "" },
+  produtor: { nome: "", crea: "" },
+  dataInspecao: "",
+  statusGeral: "seguro",
+  equipamentos: [],
+};
+
+function paraDraft(e: LaudoExtraido | null): Draft {
+  if (!e) return structuredClone(DRAFT_VAZIO);
   return {
     predio: { nome: e.predio.nome, endereco: e.predio.endereco ?? "" },
     produtor: { nome: e.produtor.nome, crea: e.produtor.crea ?? "" },
@@ -91,22 +100,40 @@ const novoEquip = (): EquipDraft => ({
   naoConformidades: [novaNc()],
 });
 
-export function ReviewForm({
+/**
+ * Formulário de edição do laudo (predio, produtor, equipamentos, NCs) — usado
+ * em dois fluxos:
+ * - `modo="revisar"`: confere/corrige a extração da IA antes de publicar
+ *   (`temPdfOriginal=true`, sempre tem PDF pra conferir contra).
+ * - `modo="manual"`: engenheiro monta o laudo do zero, sem PDF. Ganha o botão
+ *   extra "Salvar rascunho" (não exige assinatura, mantém em `rascunho`).
+ * Os dois terminam no mesmo `aprovarLaudo` — publicar sempre exige nome do
+ * responsável + confirmação + `laudoSchema` válido (ADR-002).
+ */
+export function LaudoForm({
   id,
   inicial,
+  modo,
+  temPdfOriginal,
 }: {
   id: string;
-  inicial: LaudoExtraido;
+  inicial: LaudoExtraido | null;
+  modo: "revisar" | "manual";
+  temPdfOriginal: boolean;
 }) {
   const [draft, setDraft] = useState<Draft>(() => paraDraft(inicial));
-  const [assinanteNome, setAssinanteNome] = useState(inicial.produtor.nome);
+  const [assinanteNome, setAssinanteNome] = useState(
+    inicial?.produtor.nome ?? "",
+  );
   const [assinanteCrea, setAssinanteCrea] = useState(
-    inicial.produtor.crea ?? "",
+    inicial?.produtor.crea ?? "",
   );
   const [confirmado, setConfirmado] = useState(false);
   const [erros, setErros] = useState<Set<string>>(new Set());
   const [topErro, setTopErro] = useState<string | null>(null);
+  const [rascunhoSalvo, setRascunhoSalvo] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [salvandoRascunho, startSalvarRascunho] = useTransition();
 
   const bad = (path: string) => erros.has(path);
   const inputCls = (path: string) =>
@@ -121,8 +148,19 @@ export function ReviewForm({
       return c;
     });
 
+  function salvar() {
+    setTopErro(null);
+    setRascunhoSalvo(false);
+    startSalvarRascunho(async () => {
+      const r = await salvarRascunho({ id, extracao: limpar(draft) });
+      if (r?.erro) setTopErro(r.erro);
+      else setRascunhoSalvo(true);
+    });
+  }
+
   function aprovar() {
     setTopErro(null);
+    setRascunhoSalvo(false);
     const cleaned = limpar(draft);
     const res = laudoSchema.safeParse(cleaned);
     if (!res.success) {
@@ -158,27 +196,32 @@ export function ReviewForm({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Revisão do laudo
+            {modo === "revisar" ? "Revisão do laudo" : "Novo laudo"}
           </p>
           <h1 className="text-xl font-semibold tracking-tight">
-            Confira, corrija e assine
+            {modo === "revisar"
+              ? "Confira, corrija e assine"
+              : "Monte o laudo e assine"}
           </h1>
         </div>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={
-            <a href={`/laudos/${id}/pdf`} target="_blank" rel="noreferrer" />
-          }
-        >
-          <ExternalLink className="size-4" />
-          Abrir PDF original
-        </Button>
+        {temPdfOriginal ? (
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <a href={`/laudos/${id}/pdf`} target="_blank" rel="noreferrer" />
+            }
+          >
+            <ExternalLink className="size-4" />
+            Abrir PDF original
+          </Button>
+        ) : null}
       </div>
 
       <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        A extração é um rascunho da IA. Você é o responsável técnico — confira
-        cada campo contra o PDF original antes de publicar.
+        {modo === "revisar"
+          ? "A extração é um rascunho da IA. Você é o responsável técnico — confira cada campo contra o PDF original antes de publicar."
+          : "Preencha os dados do laudo. Nada é publicado sem a sua assinatura como responsável técnico."}
       </p>
 
       <section className="space-y-3 rounded-lg border border-input p-4">
@@ -466,9 +509,7 @@ export function ReviewForm({
       <section className="space-y-3 rounded-lg border border-input p-4">
         <h2 className="text-sm font-medium">Assinatura do responsável técnico</h2>
         <p className="text-sm text-muted-foreground">
-          Ao publicar, você atesta que revisou a extração contra o laudo
-          original. O produto comunica os dados — a responsabilidade técnica é
-          sua.
+          Ao publicar, você atesta que revisou o laudo{modo === "revisar" ? " contra o original" : ""}. O produto comunica os dados — a responsabilidade técnica é sua.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1 text-sm">
@@ -496,8 +537,7 @@ export function ReviewForm({
             onChange={(e) => setConfirmado(e.target.checked)}
           />
           <span>
-            Revisei a extração contra o laudo original e assino como responsável
-            técnico.
+            Revisei {modo === "revisar" ? "a extração contra o laudo original" : "os dados deste laudo"} e assino como responsável técnico.
           </span>
         </label>
       </section>
@@ -507,16 +547,40 @@ export function ReviewForm({
           {topErro}
         </p>
       ) : null}
+      {rascunhoSalvo && !topErro ? (
+        <p className="text-sm text-emerald-700 dark:text-emerald-400">
+          Rascunho salvo.
+        </p>
+      ) : null}
 
-      <div className="flex justify-end">
-        <Button onClick={aprovar} disabled={pending}>
+      <div className="flex justify-end gap-2">
+        {modo === "manual" ? (
+          <Button
+            variant="outline"
+            onClick={salvar}
+            disabled={salvandoRascunho || pending}
+          >
+            {salvandoRascunho ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Salvando…
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                Salvar rascunho
+              </>
+            )}
+          </Button>
+        ) : null}
+        <Button onClick={aprovar} disabled={pending || salvandoRascunho}>
           {pending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
               Publicando…
             </>
           ) : (
-            "Aprovar e publicar"
+            "Assinar e publicar"
           )}
         </Button>
       </div>

@@ -11,10 +11,14 @@ import {
 
 import type { LaudoExtraido } from "@/lib/schema/laudo";
 
-// Estados do laudo (architecture.md): extraindo → revisar → publicado.
-// Só `publicado` é visível pelo link público (P4). Publicar exige revisão
-// humana (P2) — guardrail de liability, nunca pular.
+// Estados do laudo (architecture.md): rascunho (manual, sem PDF, engenheiro
+// montando do zero) | extraindo (IA processando PDF) → revisar (extração da
+// IA aguardando revisão humana) → publicado. Só `publicado` é visível pelo
+// link público (P4). Publicar exige revisão humana (P2) — guardrail de
+// liability, nunca pular — vale tanto pra extração da IA quanto pra laudo
+// montado manualmente.
 export const laudoStatus = pgEnum("laudo_status", [
+  "rascunho",
   "extraindo",
   "revisar",
   "publicado",
@@ -24,11 +28,12 @@ export const laudos = pgTable("laudos", {
   id: uuid("id").primaryKey().defaultRandom(),
   status: laudoStatus("status").notNull().default("extraindo"),
 
-  // Arquivo original no Vercel Blob (privado).
-  blobUrl: text("blob_url").notNull(),
-  blobPathname: text("blob_pathname").notNull(),
-  fileName: text("file_name").notNull(),
-  fileSize: integer("file_size").notNull(),
+  // Arquivo original no Vercel Blob (privado). NULLABLE: laudo `rascunho`
+  // montado manualmente pelo engenheiro nunca teve upload de PDF.
+  blobUrl: text("blob_url"),
+  blobPathname: text("blob_pathname"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
 
   // Extração estruturada (LaudoSchema). Preenchida no persist-extraction (P1).
   extracao: jsonb("extracao").$type<LaudoExtraido>(),

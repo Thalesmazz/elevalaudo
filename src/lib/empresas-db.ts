@@ -15,7 +15,7 @@ import type { LaudoExtraido } from "@/lib/schema/laudo";
 
 export type LaudoDaEmpresa = {
   id: string;
-  status: "extraindo" | "revisar" | "publicado";
+  status: "rascunho" | "extraindo" | "revisar" | "publicado";
   titulo: string;
   /** Identificações dos elevadores (para o card do modal de gráficos). */
   elevadores: string[];
@@ -75,7 +75,7 @@ export async function getEmpresasDoUsuario(
     const item: LaudoDaEmpresa = {
       id: l.id,
       status: l.status,
-      titulo: ex?.predio.nome || l.fileName,
+      titulo: ex?.predio.nome || l.fileName || "Rascunho sem título",
       elevadores: ex?.equipamentos.map((e) => e.identificacao) ?? [],
       dataInspecao: ex?.dataInspecao ?? null,
       statusGeral: ex?.statusGeral ?? null,

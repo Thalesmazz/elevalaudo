@@ -88,13 +88,12 @@ export function LaudoChat({ api }: { api: string }) {
   return (
     <section
       aria-label="Pergunte ao laudo"
-      className="rounded-xl border border-border bg-card"
+      className="surface-panel rounded-2xl"
     >
-      <header className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-5">
-        <MessageCircleQuestion
-          className="size-4 text-brand-green-strong"
-          strokeWidth={2.25}
-        />
+      <header className="flex items-center gap-2.5 border-b border-border px-4 py-3 sm:px-5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-green/20 text-brand-green-strong">
+          <MessageCircleQuestion className="size-4" strokeWidth={2.25} />
+        </span>
         <h2 className="text-base font-semibold tracking-tight">
           Pergunte ao laudo
         </h2>
@@ -167,7 +166,7 @@ export function LaudoChat({ api }: { api: string }) {
                       type="button"
                       onClick={() => enviar(s)}
                       disabled={ocupado}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand-green-strong/40 hover:bg-brand-green/10 hover:text-foreground disabled:opacity-50"
                     >
                       <Sparkles className="size-3.5" strokeWidth={2} />
                       {s}
@@ -250,7 +249,7 @@ export function LaudoChat({ api }: { api: string }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ex: posso usar o elevador?"
-              className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-all focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
             <button
               type="submit"

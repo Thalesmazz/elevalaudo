@@ -21,6 +21,11 @@ export async function processarLaudo(id: string): Promise<void> {
 
   // Guard de idempotência: já extraído (revisar/publicado) → não reprocessa.
   if (laudo.status !== "extraindo") return;
+  // Invariante: todo laudo em `extraindo` veio do upload de PDF, então sempre
+  // tem blobPathname — laudo `rascunho` (manual) nunca chega aqui.
+  if (!laudo.blobPathname) {
+    throw new Error(`Laudo ${id} em extraindo sem blobPathname`);
+  }
 
   try {
     const pdf = await downloadLaudoPdf(laudo.blobPathname);
