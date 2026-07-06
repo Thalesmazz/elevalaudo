@@ -14,37 +14,9 @@ export const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
 export const LOGO_MIMES = ["image/png", "image/jpeg"] as const;
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
 
-export type PdfUpload = {
-  blobUrl: string;
-  blobPathname: string;
-  fileName: string;
-  fileSize: number;
-};
-
-/**
- * Sobe o PDF do laudo pro Blob privado sob `laudos/<id>.pdf`.
- * O `id` (uuid do registro) garante pathname único e idempotente.
- */
-export async function uploadLaudoPdf(
-  id: string,
-  file: File,
-): Promise<PdfUpload> {
-  const pathname = `laudos/${id}.pdf`;
-
-  const blob = await put(pathname, file, {
-    access: "private",
-    addRandomSuffix: false,
-    contentType: PDF_MIME,
-    allowOverwrite: true,
-  });
-
-  return {
-    blobUrl: blob.url,
-    blobPathname: blob.pathname,
-    fileName: file.name,
-    fileSize: file.size,
-  };
-}
+// O upload do PDF do laudo é client-side direto pro Blob (auditoria 2026-07):
+// browser → /api/upload/token → Blob privado, sem passar pelo body da server
+// action (Vercel corta em ~4.5 MB). Registro em upload/actions.ts.
 
 export type LogoUpload = {
   logoUrl: string;

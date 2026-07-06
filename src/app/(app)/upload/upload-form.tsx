@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState, type FormEvent } from "react";
+import { upload } from "@vercel/blob/client";
 import { FileUp, Loader2, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { uploadLaudo, type UploadState } from "./actions";
+import { registrarLaudoEnviado, type UploadState } from "./actions";
 
-const initialState: UploadState = {};
+const PDF_MIME = "application/pdf";
+const MAX_PDF_BYTES = 20 * 1024 * 1024; // espelho de lib/blob (server-only)
 
 const inputCls =
   "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -18,18 +20,71 @@ export function UploadForm({
   empresas: { id: string; nome: string }[];
   empresaInicialId?: string;
 }) {
-  const [state, formAction, pending] = useActionState(
-    uploadLaudo,
-    initialState,
-  );
+  const [state, setState] = useState<UploadState>({});
+  const [pending, setPending] = useState(false);
   // Sem empresas ainda → já abre no modo "nova". Com empresas → escolhe uma.
   const [modo, setModo] = useState<"existente" | "nova">(
     empresas.length > 0 ? "existente" : "nova",
   );
   const empresaDefault = empresaInicialId ?? empresas[0]?.id;
 
+  // Browser → Blob privado direto (via /api/upload/token) e só DEPOIS registra
+  // o laudo na action — o body da server action era cortado em ~4.5 MB na
+  // Vercel, o que quebrava PDF grande em produção (auditoria 2026-07).
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const file = formData.get("pdf");
+
+    if (!(file instanceof File) || file.size === 0) {
+      setState({ erro: "Selecione um arquivo PDF do laudo." });
+      return;
+    }
+    if (file.type !== PDF_MIME) {
+      setState({ erro: "O arquivo precisa ser um PDF." });
+      return;
+    }
+    if (file.size > MAX_PDF_BYTES) {
+      setState({ erro: "PDF muito grande (máx. 20 MB)." });
+      return;
+    }
+
+    setPending(true);
+    setState({});
+    try {
+      const id = crypto.randomUUID();
+      const blob = await upload(`laudos/${id}.pdf`, file, {
+        access: "private",
+        handleUploadUrl: "/api/upload/token",
+        contentType: PDF_MIME,
+      });
+
+      const registro = new FormData();
+      registro.set("pathname", blob.pathname);
+      registro.set("blobUrl", blob.url);
+      registro.set("fileName", file.name);
+      const empresaId = formData.get("empresaId");
+      const empresaNome = formData.get("empresaNome");
+      if (typeof empresaId === "string") registro.set("empresaId", empresaId);
+      if (typeof empresaNome === "string") {
+        registro.set("empresaNome", empresaNome);
+      }
+
+      // Em sucesso a action redireciona pra página do laudo (não retorna).
+      const resultado = await registrarLaudoEnviado({}, registro);
+      if (resultado?.erro) {
+        setState(resultado);
+        setPending(false);
+      }
+    } catch {
+      setState({ erro: "Falha ao enviar o PDF. Tente novamente." });
+      setPending(false);
+    }
+  }
+
   return (
-    <form action={formAction} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Empresa/cliente da extração — agrupa o laudo na lateral. */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">

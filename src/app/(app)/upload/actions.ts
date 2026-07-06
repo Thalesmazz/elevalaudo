@@ -2,23 +2,32 @@
 
 import { after } from "next/server";
 import { redirect } from "next/navigation";
+import { head } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { empresas, laudos } from "@/db/schema";
 import { getSessao } from "@/lib/auth/session";
 import { processarLaudo } from "@/lib/ai/process";
-import { MAX_PDF_BYTES, PDF_MIME, uploadLaudoPdf } from "@/lib/blob";
+import { MAX_PDF_BYTES, PDF_MIME } from "@/lib/blob";
 
 export type UploadState = { erro?: string };
 
+// O PDF sobe do browser direto pro Blob privado (rota /api/upload/token) —
+// o body da server action era cortado em ~4.5 MB na Vercel (auditoria
+// 2026-07). Esta action só REGISTRA o laudo, depois de conferir o blob
+// server-side.
+
+const PATHNAME_RE =
+  /^laudos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.pdf$/;
+
 /**
- * Recebe o PDF do laudo, valida, sobe pro Blob privado e cria o registro
- * `laudo` com status `extraindo`. Amarra a extração ao usuário logado e à
- * empresa/cliente escolhida (existente ou nova), pra alimentar a lateral.
- * Redireciona pra página do laudo.
+ * Registra o laudo após o upload client-side: valida sessão e empresa,
+ * confere o blob com head() (existe, é PDF, tamanho ok — nunca confia no
+ * client), cria a linha `extraindo` e dispara a extração. Redireciona pra
+ * página do laudo.
  */
-export async function uploadLaudo(
+export async function registrarLaudoEnviado(
   _prev: UploadState,
   formData: FormData,
 ): Promise<UploadState> {
@@ -27,17 +36,16 @@ export async function uploadLaudo(
     return { erro: "Sessão expirada. Entre novamente." };
   }
 
-  const file = formData.get("pdf");
+  const pathname = (formData.get("pathname") as string | null)?.trim() ?? "";
+  const blobUrl = (formData.get("blobUrl") as string | null)?.trim() ?? "";
+  const fileName =
+    (formData.get("fileName") as string | null)?.trim() || "laudo.pdf";
 
-  if (!(file instanceof File) || file.size === 0) {
-    return { erro: "Selecione um arquivo PDF do laudo." };
+  const idMatch = PATHNAME_RE.exec(pathname);
+  if (!idMatch || !blobUrl) {
+    return { erro: "Upload inválido. Tente novamente." };
   }
-  if (file.type !== PDF_MIME) {
-    return { erro: "O arquivo precisa ser um PDF." };
-  }
-  if (file.size > MAX_PDF_BYTES) {
-    return { erro: "PDF muito grande (máx. 20 MB)." };
-  }
+  const id = idMatch[1];
 
   // Empresa: id existente OU nome de uma nova. Sem empresa não dá pra agrupar.
   const empresaIdRaw = (formData.get("empresaId") as string | null)?.trim();
@@ -70,17 +78,28 @@ export async function uploadLaudo(
     return { erro: "Escolha ou crie uma empresa para a extração." };
   }
 
-  const id = crypto.randomUUID();
-
-  const upload = await uploadLaudoPdf(id, file);
+  // Confere o blob de verdade — tipo e tamanho vêm do storage, não do form.
+  let fileSize: number;
+  try {
+    const blob = await head(pathname);
+    if (blob.contentType !== PDF_MIME) {
+      return { erro: "O arquivo precisa ser um PDF." };
+    }
+    if (blob.size > MAX_PDF_BYTES) {
+      return { erro: "PDF muito grande (máx. 20 MB)." };
+    }
+    fileSize = blob.size;
+  } catch {
+    return { erro: "Arquivo não encontrado. Envie novamente." };
+  }
 
   await db.insert(laudos).values({
     id,
     status: "extraindo",
-    blobUrl: upload.blobUrl,
-    blobPathname: upload.blobPathname,
-    fileName: upload.fileName,
-    fileSize: upload.fileSize,
+    blobUrl,
+    blobPathname: pathname,
+    fileName,
+    fileSize,
     userId: sessao.user.id,
     empresaId,
   });
