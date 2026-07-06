@@ -1,8 +1,10 @@
 import type { UIMessage } from "ai";
 
 import { responderSobreLaudo } from "@/lib/ai/chat";
+import { mensagensSaoAceitaveis } from "@/lib/ai/chat-guard";
 import { getSessao } from "@/lib/auth/session";
 import { getLaudoAcessivelPorUsuario } from "@/lib/laudo-access";
+import { checarLimite } from "@/lib/rate-limit";
 
 // Endpoint do "Pergunte ao laudo" no painel do produtor (P5). Grounded por id:
 // só responde a partir da extração persistida do laudo. Resposta em streaming.
@@ -17,6 +19,15 @@ export async function POST(
 
   const sessao = await getSessao();
   if (!sessao) return new Response("Não autenticado", { status: 401 });
+
+  if (!mensagensSaoAceitaveis(messages)) {
+    return new Response("Conversa longa demais.", { status: 400 });
+  }
+  if (!(await checarLimite("chat-auth", sessao.user.id, 30, 60_000))) {
+    return new Response("Muitas perguntas em sequência. Aguarde um minuto.", {
+      status: 429,
+    });
+  }
 
   const acesso = await getLaudoAcessivelPorUsuario(id, sessao.user);
   const laudo = acesso?.laudo;

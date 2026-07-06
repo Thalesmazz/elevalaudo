@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { hashSenha } from "@/lib/auth/password";
 import { criarSessao } from "@/lib/auth/session";
+import { checarLimite, getClientIp } from "@/lib/rate-limit";
 
 export type CadastroState = { erro?: string };
 
@@ -30,6 +32,12 @@ export async function cadastrar(
   });
   if (!parsed.success) {
     return { erro: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  // Contas em massa = spam/abuso do free-tier (auditoria 2026-07).
+  const ip = getClientIp(await headers());
+  if (!(await checarLimite("cadastro", ip, 5, 3_600_000))) {
+    return { erro: "Muitas tentativas. Aguarde alguns minutos." };
   }
 
   const { nome, email, senha, role } = parsed.data;

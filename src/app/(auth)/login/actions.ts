@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { verificarSenha } from "@/lib/auth/password";
 import { criarSessao } from "@/lib/auth/session";
+import { checarLimite, getClientIp } from "@/lib/rate-limit";
 
 export type LoginState = { erro?: string };
 
@@ -26,6 +28,17 @@ export async function login(
   });
   if (!parsed.success) {
     return { erro: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  // Anti brute-force (auditoria 2026-07): por IP e por email — o segundo
+  // impede ataque distribuído contra UMA conta.
+  const ip = getClientIp(await headers());
+  const [ipOk, emailOk] = await Promise.all([
+    checarLimite("login-ip", ip, 10, 15 * 60_000),
+    checarLimite("login-email", parsed.data.email, 5, 15 * 60_000),
+  ]);
+  if (!ipOk || !emailOk) {
+    return { erro: "Muitas tentativas. Aguarde alguns minutos." };
   }
 
   const [user] = await db
