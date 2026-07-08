@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "ElevaLaudo",
   description:
     "Laudo de elevador (PDF) vira dashboard e resumo em português de gente que o síndico entende sozinho.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
