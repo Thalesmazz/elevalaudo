@@ -10,6 +10,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { cn } from "@/lib/utils";
+
 /**
  * Gráfico da timeline (P5 `equipamento-timeline`): barras empilhadas da
  * contagem de não-conformidades por severidade, uma barra por inspeção no tempo.
@@ -95,9 +97,16 @@ function TimelineTooltip({
   );
 }
 
-export function TimelineChart({ data }: { data: TimelinePontoChart[] }) {
+export function TimelineChart({
+  data,
+  heightClassName = "h-64",
+}: {
+  data: TimelinePontoChart[];
+  /** Sobrescreve a altura do gráfico (ex.: `h-40` num contexto mais compacto). */
+  heightClassName?: string;
+}) {
   return (
-    <div className="h-64 w-full">
+    <div className={cn("w-full", heightClassName)}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}

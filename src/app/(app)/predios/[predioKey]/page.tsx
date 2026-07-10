@@ -62,7 +62,7 @@ export default async function PredioTimelinePage({
   const { pontos, predioNome } = timeline;
 
   // Dados pro gráfico de NCs por inspeção. NcCharts traz o seletor de tipo
-  // (barra/linha/pizza) e a paleta RAG — reaproveitado da timeline do prédio.
+  // (barra/linha) e a paleta RAG — reaproveitado da timeline do prédio.
   const chartData: NcPonto[] = pontos.map((p) => ({
     rotulo: p.dataCurta,
     urgente: p.contagem.urgente,

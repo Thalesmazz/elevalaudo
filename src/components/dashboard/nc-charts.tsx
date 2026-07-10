@@ -5,25 +5,26 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { ChartColumn, ChartLine, ChartPie } from "lucide-react";
+import { ChartColumn, ChartLine } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Gráficos de não-conformidades em 3 tipos (barra, linha de pontos, pizza)
- * sobre o MESMO dataset — usado no modal de gráficos sob demanda (laudos
+ * Gráficos de não-conformidades em 2 tipos (barra empilhada, linha) sobre o
+ * MESMO dataset — usado no modal de gráficos sob demanda (laudos
  * selecionados pelo usuário) e reaproveitável na timeline do prédio.
+ *
+ * Sem pizza: com só 3 fatias (urgente/atenção/leve) o donut não comunica mais
+ * que a barra empilhada, e falha o teste de mais de 1 inspeção (pizza não tem
+ * eixo do tempo). Barra/linha cobrem comparação e tendência — os dois casos
+ * de uso reais do produto.
  *
  * Cores: paleta RAG fixa (urgente/atenção/leve) — recharts é SVG e precisa de
  * hex literal. Mantém o vocabulário do semáforo (status.ts): honestidade visual
@@ -45,12 +46,11 @@ export type NcPonto = {
   total: number;
 };
 
-type Tipo = "barra" | "linha" | "pizza";
+type Tipo = "barra" | "linha";
 
 const TIPOS: { value: Tipo; label: string; Icon: typeof ChartColumn }[] = [
   { value: "barra", label: "Barra", Icon: ChartColumn },
   { value: "linha", label: "Linha", Icon: ChartLine },
-  { value: "pizza", label: "Pizza", Icon: ChartPie },
 ];
 
 function ChartTooltip({
@@ -91,18 +91,14 @@ function ChartTooltip({
 export function NcCharts({
   data,
   className,
+  heightClassName = "h-72",
 }: {
   data: NcPonto[];
   className?: string;
+  /** Sobrescreve a altura do gráfico (ex.: `h-48` num contexto mais compacto). */
+  heightClassName?: string;
 }) {
   const [tipo, setTipo] = useState<Tipo>("barra");
-
-  // Pizza = distribuição agregada das severidades em todos os pontos.
-  const pizza = [
-    { name: "Urgente", key: "urgente", value: somar(data, "urgente") },
-    { name: "Atenção", key: "atencao", value: somar(data, "atencao") },
-    { name: "Leve", key: "leve", value: somar(data, "leve") },
-  ].filter((d) => d.value > 0);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -129,7 +125,7 @@ export function NcCharts({
         })}
       </div>
 
-      <div className="h-72 w-full">
+      <div className={cn("w-full", heightClassName)}>
         <ResponsiveContainer width="100%" height="100%">
           {tipo === "barra" ? (
             <BarChart
@@ -168,7 +164,7 @@ export function NcCharts({
               <Bar dataKey="atencao" name="Atenção" stackId="nc" fill={COR.atencao} isAnimationActive={false} />
               <Bar dataKey="urgente" name="Urgente" stackId="nc" fill={COR.urgente} radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
-          ) : tipo === "linha" ? (
+          ) : (
             <LineChart
               data={data}
               margin={{ top: 8, right: 8, bottom: 4, left: -16 }}
@@ -201,40 +197,9 @@ export function NcCharts({
               <Line type="monotone" dataKey="atencao" name="Atenção" stroke={COR.atencao} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
               <Line type="monotone" dataKey="leve" name="Leve" stroke={COR.leve} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
             </LineChart>
-          ) : (
-            <PieChart>
-              <Tooltip content={<ChartTooltip />} />
-              <Legend
-                verticalAlign="bottom"
-                height={28}
-                iconType="circle"
-                formatter={(v) => (
-                  <span className="text-xs text-muted-foreground">{v}</span>
-                )}
-              />
-              <Pie
-                data={pizza}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="48%"
-                innerRadius={48}
-                outerRadius={92}
-                paddingAngle={2}
-                isAnimationActive={false}
-              >
-                {pizza.map((d) => (
-                  <Cell key={d.key} fill={COR[d.key as keyof typeof COR]} />
-                ))}
-              </Pie>
-            </PieChart>
           )}
         </ResponsiveContainer>
       </div>
     </div>
   );
-}
-
-function somar(data: NcPonto[], key: "urgente" | "atencao" | "leve") {
-  return data.reduce((n, d) => n + d[key], 0);
 }

@@ -11,7 +11,7 @@ import type { LaudoDaEmpresa } from "@/lib/empresas-db";
 
 /**
  * Modal de gráficos sob demanda: lista os laudos da empresa como cards
- * selecionáveis e, com os escolhidos, renderiza os gráficos (barra/linha/pizza)
+ * selecionáveis e, com os escolhidos, renderiza os gráficos (barra/linha)
  * só dos selecionados. Diferente de "Meus laudos" (visão ampla) — aqui é o
  * recorte que o usuário monta na hora.
  *

@@ -10,6 +10,7 @@ import {
   HardHat,
   MessageSquareText,
   OctagonAlert,
+  PlayCircle,
   ScanText,
   ShieldCheck,
   Signature,
@@ -17,6 +18,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { DemoInterativa } from "@/components/demo/demo-interativa";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getSessao } from "@/lib/auth/session";
@@ -71,7 +73,14 @@ function SiteHeader() {
           <Logo markClassName="size-8" wordClassName="hidden text-lg sm:block" />
         </Link>
 
-        <nav className="hidden items-center gap-1 text-sm font-medium text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-1.5 text-sm font-medium text-muted-foreground md:flex">
+          <a
+            href="#demo-extracao"
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/15 px-3 py-1.5 text-brand-green-strong transition-colors hover:bg-brand-green/25"
+          >
+            <PlayCircle className="size-4" strokeWidth={2.25} />
+            Ver demo
+          </a>
           <a
             href="#como-funciona"
             className="rounded-lg px-3 py-2 transition-colors hover:bg-muted hover:text-foreground"
@@ -336,283 +345,25 @@ function DemoExtracao() {
       id="demo-extracao"
       kicker="Demo sem conta"
       titulo="Veja o fluxo inteiro antes de criar conta"
-      sub="Uma simulação fiel do produto: o PDF entra, a IA organiza, o engenheiro revisa e o síndico recebe um painel legível."
     >
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="surface-panel flex flex-col gap-6 rounded-3xl p-6 sm:p-7">
-          <div>
-            <p className="text-sm leading-7 text-muted-foreground">
-              A demo abaixo espelha o fluxo real do ElevaLaudo sem pedir login.
-              Ela mostra o que acontece depois do envio do laudo, inclusive o
-              ponto de revisão obrigatória antes de qualquer publicação.
-            </p>
+      <div className="surface-panel mx-auto mb-8 flex w-full max-w-4xl flex-wrap items-center justify-center gap-2.5 rounded-2xl px-5 py-4">
+        {passos.map((passo, index) => (
+          <div key={passo} className="flex items-center gap-2.5">
+            <span className="rounded-full border border-brand-green-strong/25 bg-brand-green/10 px-4 py-2 text-sm font-semibold text-foreground">
+              {passo}
+            </span>
+            {index < passos.length - 1 ? (
+              <ArrowRight
+                className="size-4 text-brand-green-strong"
+                strokeWidth={2.5}
+                aria-hidden
+              />
+            ) : null}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {passos.map((passo, index) => (
-              <div
-                key={passo}
-                className="flex items-center gap-2"
-              >
-                <span className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground/80">
-                  {passo}
-                </span>
-                {index < passos.length - 1 ? (
-                  <ArrowRight
-                    className="size-3.5 text-muted-foreground"
-                    strokeWidth={2.25}
-                    aria-hidden
-                  />
-                ) : null}
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-2xl border border-border bg-brand-cream-soft/70 p-4">
-            <p className="text-sm font-semibold tracking-tight">
-              O que esta demo deixa claro
-            </p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              O produto comunica o laudo em português de gente, mas a
-              publicação continua dependendo da revisão e da assinatura do
-              responsável técnico.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          <div
-            className="demo-card-enter surface-panel rounded-3xl p-5"
-            style={{ animationDelay: "0ms" }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-kicker">01 · Upload</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-tight">
-                  PDF recebido
-                </h3>
-              </div>
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-green/15 text-brand-green-strong ring-1 ring-brand-green-strong/15">
-                <FileUp className="size-5" strokeWidth={2.25} />
-              </span>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-border bg-background/80 p-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-2xl bg-secondary text-brand-green-strong">
-                  <FileText className="size-4.5" strokeWidth={2.1} />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-foreground/80">
-                    laudo-inspecao.pdf
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Arquivo validado e pronto para leitura
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {["PDF conferido", "Blob privado", "Status: extraindo"].map(
-                  (item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2 text-xs text-muted-foreground"
-                    >
-                      <span className="size-2 rounded-full bg-brand-green-strong" />
-                      {item}
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="demo-card-enter surface-panel relative overflow-hidden rounded-3xl p-5"
-            style={{ animationDelay: "120ms" }}
-          >
-            <div
-              aria-hidden
-              className="extraction-scan absolute inset-x-8 top-16 h-px bg-gradient-to-r from-transparent via-brand-green-strong/70 to-transparent"
-            />
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-kicker">02 · Extração</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-tight">
-                  IA estrutura o laudo
-                </h3>
-              </div>
-              <span className="relative flex size-11 items-center justify-center rounded-2xl bg-brand-green/15 text-brand-green-strong ring-1 ring-brand-green-strong/15">
-                <span
-                  aria-hidden
-                  className="extraction-halo absolute inset-[-0.55rem] rounded-[1.25rem] bg-brand-green/20 blur-lg"
-                />
-                <ScanText
-                  className="extraction-logo-pulse relative size-5"
-                  strokeWidth={2.25}
-                />
-              </span>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {[
-                "Lendo o PDF",
-                "Separando equipamentos",
-                "Classificando severidades",
-              ].map((step, index) => (
-                <div
-                  key={step}
-                  className="rounded-2xl border border-border bg-background/80 p-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-foreground/85">
-                      {step}
-                    </span>
-                    <span
-                      className="extraction-step-dot size-2.5 shrink-0 rounded-full bg-brand-green-strong"
-                      style={{ animationDelay: `${index * 180}ms` }}
-                      aria-hidden
-                    />
-                  </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="demo-progress-fill h-full rounded-full bg-brand-green-strong"
-                      style={{ animationDelay: `${index * 220}ms` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className="demo-card-enter surface-panel rounded-3xl p-5"
-            style={{ animationDelay: "240ms" }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-kicker">03 · Revisão</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-tight">
-                  Engenheiro confere e assina
-                </h3>
-              </div>
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-amber-400/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400">
-                <Signature className="size-5" strokeWidth={2.25} />
-              </span>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-border bg-background/80 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold tracking-tight">
-                    Responsável técnico
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Helena Costa · CREA 123456/D
-                  </p>
-                </div>
-                <span className="rounded-full bg-amber-400/12 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400">
-                  Revisando
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {[
-                  "Confere o PDF original",
-                  "Ajusta dados antes de publicar",
-                  "Assina antes do link público",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-2 text-sm text-foreground/80"
-                  >
-                    <ShieldCheck
-                      className="size-4 shrink-0 text-brand-green-strong"
-                      strokeWidth={2.25}
-                    />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="demo-card-enter surface-panel rounded-3xl p-5"
-            style={{ animationDelay: "360ms" }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-kicker">04 · Dashboard</p>
-                <h3 className="mt-2 text-xl font-semibold tracking-tight">
-                  Painel pronto para o síndico
-                </h3>
-              </div>
-              <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400">
-                Publicado
-              </span>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-border bg-background/80 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex shrink-0 flex-col gap-2 rounded-2xl bg-zinc-900 p-2.5 ring-1 ring-inset ring-white/10">
-                  <span className="size-5 rounded-full bg-emerald-500/15" />
-                  <span className="status-lamp-on size-5 rounded-full bg-amber-400 shadow-[0_0_16px_4px_rgba(251,191,36,0.5)]" />
-                  <span className="size-5 rounded-full bg-red-500/15" />
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <TriangleAlert
-                      className="size-5 text-amber-600 dark:text-amber-400"
-                      strokeWidth={2.1}
-                    />
-                    <span className="text-2xl font-semibold tracking-tight text-amber-600 dark:text-amber-400">
-                      Atenção
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Resumo claro, prazos visíveis e pendências ordenadas por
-                    urgência.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[
-                  { value: "3", label: "Equipamentos" },
-                  { value: "7", label: "NCs" },
-                  { value: "2", label: "Urgentes" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-xl border border-border bg-card px-2.5 py-2 text-center"
-                  >
-                    <p className="text-lg font-semibold tracking-tight">
-                      {item.value}
-                    </p>
-                    <p className="text-[0.68rem] text-muted-foreground">
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <PreviewNc
-                  sev="urgente"
-                  texto="Cabo de tração com desgaste acima do limite"
-                />
-                <PreviewNc
-                  sev="atencao"
-                  texto="Iluminação de emergência da cabine intermitente"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
+
+      <DemoInterativa />
     </Section>
   );
 }
