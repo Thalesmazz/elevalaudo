@@ -10,7 +10,6 @@ import { DEMO_CENAS } from "@/components/demo/demo-data";
 import {
   SceneDashboard,
   SceneExtracao,
-  SceneHistorico,
   SceneLista,
   SceneUpload,
 } from "@/components/demo/demo-scenes";
@@ -19,17 +18,16 @@ const SCENE_COMPONENTS = {
   upload: SceneUpload,
   extracao: SceneExtracao,
   dashboard: SceneDashboard,
-  historico: SceneHistorico,
   lista: SceneLista,
 } as const;
 
 /**
  * Demo interativa "sem conta" da landing (ver ADR-009). Um cursor-fantasma
- * percorre em loop 5 telas reais do produto — upload, extração, dashboard
- * (gráficos reais do `NcCharts`), histórico do prédio e a lista geral de
- * laudos — alimentadas com dados fictícios. Pausar a demo (botão ou clique
- * numa seta) congela o piloto automático e libera os controles reais da cena
- * atual (toggle de gráfico, dropzone, abas) pro visitante mexer.
+ * percorre em loop 4 telas reais do produto — upload, extração, dashboard
+ * (gráficos reais do `NcCharts`) e a lista geral de laudos — alimentadas com
+ * dados fictícios. Pausar a demo (botão ou clique numa seta) congela o piloto
+ * automático e libera os controles reais da cena atual (toggle de gráfico,
+ * dropzone, abas) pro visitante mexer.
  */
 export function DemoInterativa() {
   const [index, setIndex] = useState(0);
