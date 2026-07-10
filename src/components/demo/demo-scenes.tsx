@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { animate, motion } from "motion/react";
+import { animate } from "motion/react";
 import {
   ArrowLeft,
   Building2,
@@ -21,22 +21,17 @@ import {
 
 import { LogoMark } from "@/components/logo";
 import { NcCharts } from "@/components/dashboard/nc-charts";
-import { TimelineChart } from "@/components/dashboard/timeline-chart";
 import { STATUS_ORDER, statusConfig, severidadeConfig } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { useDemoCursor, wait } from "@/components/demo/demo-cursor";
 import {
   DEMO_ARQUIVO,
-  DEMO_ENGENHEIRO,
-  DEMO_HISTORICO,
   DEMO_KPIS,
   DEMO_LISTA_KPIS,
   DEMO_LISTA_LAUDOS,
   DEMO_NCS,
-  DEMO_NC_POR_EQUIPAMENTO,
-  DEMO_PREDIO,
+  DEMO_NC_EVOLUCAO,
   DEMO_STATUS,
-  DEMO_TIMELINE,
   EXTRACAO_STEPS,
   type DemoFluxo,
   type DemoLaudoResumo,
@@ -356,9 +351,9 @@ export function SceneDashboard({ reducedMotion, playing }: SceneProps) {
 
       <div ref={chartRef} className="rounded-2xl border border-border bg-card p-3">
         <p className="mb-1 text-[0.68rem] font-medium text-muted-foreground">
-          Não-conformidades por equipamento
+          Não-conformidades por inspeção
         </p>
-        <NcCharts data={DEMO_NC_POR_EQUIPAMENTO} heightClassName="h-36 sm:h-40" />
+        <NcCharts data={DEMO_NC_EVOLUCAO} heightClassName="h-36 sm:h-40" />
       </div>
 
       <div className="space-y-1.5">
@@ -423,64 +418,6 @@ export function SceneDashboard({ reducedMotion, playing }: SceneProps) {
 }
 
 /* ------------------------------------------------------------- cena 4 --- */
-
-export function SceneHistorico({ reducedMotion }: SceneProps) {
-  return (
-    <div className="flex h-full flex-col justify-center gap-3 p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-kicker">Histórico do prédio</p>
-          <h3 className="mt-1.5 flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Building2 className="size-4 text-muted-foreground" />
-            {DEMO_PREDIO}
-          </h3>
-        </div>
-        <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-500/25 dark:text-emerald-400">
-          Publicados
-        </span>
-      </div>
-
-      <div className="space-y-1.5">
-        {DEMO_HISTORICO.map((item, index) => {
-          const rag = statusConfig[item.status];
-          return (
-            <motion.div
-              key={item.linha}
-              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.12 }}
-              className="surface-panel flex items-center gap-3 rounded-xl px-3 py-2"
-            >
-              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[0.7rem] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/25 dark:text-emerald-400">
-                Publicado
-              </span>
-              <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", rag.accent)}>
-                <rag.Icon className="size-3.5" strokeWidth={2.25} />
-                {rag.label}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                {item.linha}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <p className="mb-1 text-[0.68rem] font-medium text-muted-foreground">
-          Não-conformidades por inspeção
-        </p>
-        <TimelineChart data={DEMO_TIMELINE} heightClassName="h-36 sm:h-40" />
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        Responsável técnico: {DEMO_ENGENHEIRO}
-      </p>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- cena 5 --- */
 
 const FLUXO_PILL: Record<DemoFluxo, { label: string; cls: string }> = {
   rascunho: {

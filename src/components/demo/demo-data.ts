@@ -1,5 +1,4 @@
 import type { NcPonto } from "@/components/dashboard/nc-charts";
-import type { TimelinePontoChart } from "@/components/dashboard/timeline-chart";
 import type { StatusGeral } from "@/lib/status";
 
 /**
@@ -16,7 +15,6 @@ import type { StatusGeral } from "@/lib/status";
 
 export const DEMO_PREDIO = "Shopping Plaza Bela Vista";
 export const DEMO_ARQUIVO = "laudo-shopping-plaza.pdf";
-export const DEMO_ENGENHEIRO = "Eng. Mec. Fernanda Ribeiro · CREA-SP 456789/D";
 
 /** Status + números da inspeção de 2021 (a mais rica) — vira o "laudo recém-extraído" da demo. */
 export const DEMO_STATUS: StatusGeral = "urgente";
@@ -74,35 +72,19 @@ export const DEMO_NCS: DemoNc[] = [
   },
 ];
 
-/** Quebra por equipamento (inspeção de 2021) — alimenta o `NcCharts` real na cena de dashboard. */
-export const DEMO_NC_POR_EQUIPAMENTO: NcPonto[] = [
-  { rotulo: "Escada rolante", urgente: 2, atencao: 0, leve: 0, total: 2 },
-  { rotulo: "Panorâmico", urgente: 1, atencao: 0, leve: 0, total: 1 },
-  { rotulo: "Carga", urgente: 1, atencao: 1, leve: 0, total: 2 },
-];
-
-/** Evolução real das 5 inspeções publicadas do prédio — de urgente a seguro. */
-export const DEMO_TIMELINE: TimelinePontoChart[] = [
-  { dataCurta: "2021", dataLabel: "Inspeção 2021", urgente: 4, atencao: 1, leve: 0, total: 5, dataEstimada: false },
-  { dataCurta: "2022", dataLabel: "Inspeção 2022", urgente: 0, atencao: 3, leve: 0, total: 3, dataEstimada: false },
-  { dataCurta: "2023", dataLabel: "Inspeção 2023", urgente: 0, atencao: 0, leve: 1, total: 1, dataEstimada: false },
-  { dataCurta: "2024", dataLabel: "Inspeção 2024", urgente: 0, atencao: 1, leve: 0, total: 1, dataEstimada: false },
-  { dataCurta: "2025", dataLabel: "Inspeção 2025", urgente: 0, atencao: 0, leve: 0, total: 0, dataEstimada: false },
-];
-
-export type DemoHistoricoCard = {
-  fluxo: "publicado";
-  status: "seguro" | "atencao" | "urgente";
-  titulo: string;
-  linha: string;
-};
-
-export const DEMO_HISTORICO: DemoHistoricoCard[] = [
-  { fluxo: "publicado", status: "urgente", titulo: DEMO_PREDIO, linha: "Inspeção 2021 · 5 não-conformidades · publicado" },
-  { fluxo: "publicado", status: "atencao", titulo: DEMO_PREDIO, linha: "Inspeção 2022 · 3 não-conformidades · publicado" },
-  { fluxo: "publicado", status: "atencao", titulo: DEMO_PREDIO, linha: "Inspeção 2023 · 1 não-conformidade · publicado" },
-  { fluxo: "publicado", status: "atencao", titulo: DEMO_PREDIO, linha: "Inspeção 2024 · 1 não-conformidade · publicado" },
-  { fluxo: "publicado", status: "seguro", titulo: DEMO_PREDIO, linha: "Inspeção 2025 · 0 não-conformidades · publicado" },
+/**
+ * Evolução das inspeções publicadas do prédio (de urgente a seguro) — alimenta
+ * o gráfico "cheio" (barra/linha, via `NcCharts`) da cena de dashboard, no
+ * mesmo estilo do modal de gráficos sob demanda. Eixo X = data da inspeção.
+ */
+export const DEMO_NC_EVOLUCAO: NcPonto[] = [
+  { rotulo: "10/09/2019", urgente: 3, atencao: 2, leve: 1, total: 6 },
+  { rotulo: "12/09/2020", urgente: 4, atencao: 1, leve: 0, total: 5 },
+  { rotulo: "25/08/2021", urgente: 1, atencao: 3, leve: 1, total: 5 },
+  { rotulo: "01/09/2022", urgente: 0, atencao: 2, leve: 1, total: 3 },
+  { rotulo: "18/09/2023", urgente: 0, atencao: 0, leve: 1, total: 1 },
+  { rotulo: "07/09/2024", urgente: 0, atencao: 1, leve: 0, total: 1 },
+  { rotulo: "15/09/2025", urgente: 0, atencao: 0, leve: 0, total: 0 },
 ];
 
 /**
@@ -174,7 +156,6 @@ export type DemoCena =
   | "upload"
   | "extracao"
   | "dashboard"
-  | "historico"
   | "lista";
 
 export const DEMO_CENAS: { id: DemoCena; url: string; duracaoMs: number }[] = [
@@ -188,11 +169,6 @@ export const DEMO_CENAS: { id: DemoCena; url: string; duracaoMs: number }[] = [
     id: "dashboard",
     url: `elevalaudo.app/laudos/shopping-plaza-bela-vista`,
     duracaoMs: 9000,
-  },
-  {
-    id: "historico",
-    url: "elevalaudo.app/predios/shopping-plaza-bela-vista",
-    duracaoMs: 7200,
   },
   {
     id: "lista",
