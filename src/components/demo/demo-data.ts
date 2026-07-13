@@ -152,26 +152,120 @@ export const DEMO_LISTA_LAUDOS: DemoLaudoResumo[] = [
   },
 ];
 
+/**
+ * Cena "chat": encenação do "Pergunte ao laudo" (a feature real de
+ * `dashboard/laudo-chat.tsx`) sobre o laudo urgente do dashboard. As
+ * respostas são mockadas — a landing é pública e não gasta LLM — mas saem
+ * só do que está nas `DEMO_NCS` acima, com o mesmo tom liability-safe do
+ * produto (ADR-002: comunica o laudo, não certifica segurança). Cada
+ * resposta é estruturada em parágrafos de segmentos (negrito via `forte`)
+ * pra streamear palavra a palavra sem parsear Markdown no meio do caminho.
+ */
+export type DemoChatSegmento = { texto: string; forte?: boolean };
+
+export type DemoChatQa = {
+  pergunta: string;
+  /** Parágrafos → segmentos. */
+  resposta: DemoChatSegmento[][];
+};
+
+export const DEMO_CHAT_QAS: DemoChatQa[] = [
+  {
+    pergunta: "Posso usar o elevador normalmente?",
+    resposta: [
+      [
+        { texto: "Não por enquanto.", forte: true },
+        {
+          texto:
+            " O laudo aponta 4 problemas urgentes com recomendação de interdição imediata — entre eles dois degraus com trinca visível e o pente de entrada com dentes dobrados.",
+        },
+      ],
+      [
+        {
+          texto:
+            "Libere o uso só depois que o responsável técnico confirmar as correções.",
+        },
+      ],
+    ],
+  },
+  {
+    pergunta: "Qual é o problema mais urgente?",
+    resposta: [
+      [
+        {
+          texto: "Os dois degraus com trinca lateral visível.",
+          forte: true,
+        },
+        {
+          texto:
+            " O laudo recomenda interdição imediata e a substituição dos degraus (NBR 16858, item 4.3).",
+        },
+      ],
+      [
+        {
+          texto:
+            "Há ainda outros 3 itens urgentes, como o cabo auxiliar com fios rompidos.",
+        },
+      ],
+    ],
+  },
+  {
+    pergunta: "Quais os prazos para corrigir?",
+    resposta: [
+      [
+        { texto: "Todos os 5 itens têm prazo imediato.", forte: true },
+        {
+          texto:
+            " Os 4 urgentes (degraus, pente, cabo auxiliar e trava da porta do poço) pedem correção antes de liberar o uso.",
+        },
+      ],
+      [
+        {
+          texto:
+            "O item de atenção — limpeza do poço — também foi apontado para ação imediata.",
+        },
+      ],
+    ],
+  },
+];
+
 export type DemoCena =
   | "upload"
   | "extracao"
   | "dashboard"
+  | "chat"
   | "lista";
 
-export const DEMO_CENAS: { id: DemoCena; url: string; duracaoMs: number }[] = [
-  { id: "upload", url: "elevalaudo.app/upload", duracaoMs: 5500 },
+export const DEMO_CENAS: {
+  id: DemoCena;
+  titulo: string;
+  url: string;
+  duracaoMs: number;
+}[] = [
+  { id: "upload", titulo: "Upload", url: "elevalaudo.app/upload", duracaoMs: 5500 },
   {
     id: "extracao",
+    titulo: "Extração",
     url: `elevalaudo.app/laudos/shopping-plaza-bela-vista`,
     duracaoMs: 6800,
   },
   {
     id: "dashboard",
+    titulo: "Dashboard",
     url: `elevalaudo.app/laudos/shopping-plaza-bela-vista`,
     duracaoMs: 9000,
   },
   {
+    id: "chat",
+    titulo: "Pergunte ao laudo",
+    url: `elevalaudo.app/laudos/shopping-plaza-bela-vista`,
+    // conversa de 2 turnos (clique + resposta, depois pergunta "digitada" +
+    // resposta) precisa de mais tempo que uma única troca.
+    duracaoMs: 12500,
+  },
+  {
     id: "lista",
+    titulo: "Meus laudos",
     url: "elevalaudo.app/laudos",
     duracaoMs: 8200,
   },

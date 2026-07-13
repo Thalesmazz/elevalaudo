@@ -338,6 +338,7 @@ function DemoExtracao() {
     "Extração estruturada",
     "Revisão humana",
     "Dashboard publicado",
+    "Pergunte ao laudo",
   ];
 
   return (
@@ -363,7 +364,16 @@ function DemoExtracao() {
         ))}
       </div>
 
-      <DemoInterativa />
+      {/* mesmo "momento" de brilho do hero — ancora a demo como peça central */}
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-12 -bottom-12 bg-[radial-gradient(55%_70%_at_50%_45%,color-mix(in_oklch,var(--brand-green),transparent_80%),transparent)]"
+        />
+        <div className="relative">
+          <DemoInterativa />
+        </div>
+      </div>
     </Section>
   );
 }
