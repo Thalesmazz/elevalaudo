@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { DemoCursorProvider } from "@/components/demo/demo-cursor";
 import { DEMO_CENAS } from "@/components/demo/demo-data";
 import {
+  SceneChat,
   SceneDashboard,
   SceneExtracao,
   SceneLista,
@@ -18,16 +19,17 @@ const SCENE_COMPONENTS = {
   upload: SceneUpload,
   extracao: SceneExtracao,
   dashboard: SceneDashboard,
+  chat: SceneChat,
   lista: SceneLista,
 } as const;
 
 /**
  * Demo interativa "sem conta" da landing (ver ADR-009). Um cursor-fantasma
- * percorre em loop 4 telas reais do produto — upload, extração, dashboard
- * (gráficos reais do `NcCharts`) e a lista geral de laudos — alimentadas com
- * dados fictícios. Pausar a demo (botão ou clique numa seta) congela o piloto
- * automático e libera os controles reais da cena atual (toggle de gráfico,
- * dropzone, abas) pro visitante mexer.
+ * percorre em loop 5 telas reais do produto — upload, extração, dashboard
+ * (gráficos reais do `NcCharts`), o chat "Pergunte ao laudo" e a lista geral
+ * de laudos — alimentadas com dados fictícios. Pausar a demo (botão ou clique
+ * numa seta) congela o piloto automático e libera os controles reais da cena
+ * atual (toggle de gráfico, dropzone, abas, chips do chat) pro visitante mexer.
  */
 export function DemoInterativa() {
   const [index, setIndex] = useState(0);
@@ -109,6 +111,19 @@ export function DemoInterativa() {
           )}
         </div>
 
+        {/* progresso da cena (estilo stories) — dá ritmo visível ao autoplay */}
+        <div className="h-0.5 bg-border/40" aria-hidden>
+          {playing && !reducedMotion ? (
+            <motion.div
+              key={index}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: cena.duracaoMs / 1000, ease: "linear" }}
+              className="h-full origin-left bg-brand-green-strong/60"
+            />
+          ) : null}
+        </div>
+
         <div ref={frameRef} className="relative h-[36rem] overflow-hidden sm:h-[34rem]">
           <DemoCursorProvider frameRef={frameRef} reducedMotion={reducedMotion}>
             <AnimatePresence mode="wait">
@@ -169,7 +184,8 @@ export function DemoInterativa() {
               key={c.id}
               type="button"
               onClick={() => goTo(i)}
-              aria-label={`Ir para a cena ${i + 1}`}
+              aria-label={`Ir para a cena ${i + 1}: ${c.titulo}`}
+              title={c.titulo}
               aria-current={i === index}
               className="flex items-center justify-center p-2"
             >
@@ -192,6 +208,10 @@ export function DemoInterativa() {
           <ChevronRight className="size-5" strokeWidth={2.25} />
         </button>
       </div>
+
+      <p className="mt-2 text-center font-mono text-xs text-muted-foreground">
+        {index + 1}/{DEMO_CENAS.length} · {cena.titulo}
+      </p>
     </div>
   );
 }

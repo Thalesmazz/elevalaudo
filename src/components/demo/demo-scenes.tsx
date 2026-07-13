@@ -16,7 +16,9 @@ import {
   Loader2,
   MessageCircleQuestion,
   ScanText,
+  Send,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 import { LogoMark } from "@/components/logo";
@@ -26,13 +28,17 @@ import { cn } from "@/lib/utils";
 import { useDemoCursor, wait } from "@/components/demo/demo-cursor";
 import {
   DEMO_ARQUIVO,
+  DEMO_CHAT_QAS,
   DEMO_KPIS,
   DEMO_LISTA_KPIS,
   DEMO_LISTA_LAUDOS,
   DEMO_NCS,
   DEMO_NC_EVOLUCAO,
+  DEMO_PREDIO,
   DEMO_STATUS,
   EXTRACAO_STEPS,
+  type DemoChatQa,
+  type DemoChatSegmento,
   type DemoFluxo,
   type DemoLaudoResumo,
   type DemoNc,
@@ -418,6 +424,322 @@ export function SceneDashboard({ reducedMotion, playing }: SceneProps) {
 }
 
 /* ------------------------------------------------------------- cena 4 --- */
+
+function contarPalavrasResposta(resposta: DemoChatSegmento[][]): number {
+  return resposta
+    .flat()
+    .reduce((n, s) => n + s.texto.split(/\s+/).filter(Boolean).length, 0);
+}
+
+/** As 2 primeiras perguntas do roteiro (índices 0 e 2 de `DEMO_CHAT_QAS`) —
+ * uma conversa curta e natural: primeiro se pode usar o elevador, depois o
+ * prazo pra corrigir. A pergunta "qual o mais urgente" fica de reserva só
+ * pro visitante explorar manualmente com a demo pausada. */
+const ROTEIRO_AUTOPLAY = [DEMO_CHAT_QAS[0], DEMO_CHAT_QAS[2]];
+
+/**
+ * Encena o "Pergunte ao laudo" (a UI real de `dashboard/laudo-chat.tsx`) sem
+ * chamar a API: uma conversa curta e contínua — 2 perguntas, 2 respostas —
+ * grounded só nas `DEMO_NCS`, mesmo tom liability-safe do produto. A 1ª
+ * pergunta nasce de um clique num chip de sugestão; a 2ª é "digitada" no
+ * campo pelo cursor-fantasma, como um visitante de verdade faria depois que
+ * os chips já sumiram. Cada resposta streama palavra a palavra, imitando o
+ * streaming real do `useChat`. Pausada, os chips ainda não usados continuam
+ * clicáveis — o visitante pode continuar a conversa à sua maneira.
+ */
+export function SceneChat({ reducedMotion, playing }: SceneProps) {
+  const [mensagens, setMensagens] = useState<DemoChatQa[]>(() =>
+    reducedMotion ? ROTEIRO_AUTOPLAY : [],
+  );
+  const [fase, setFase] = useState<"lendo" | "streaming" | "done">("lendo");
+  const [palavras, setPalavras] = useState(0);
+  const [inputTexto, setInputTexto] = useState("");
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
+  const sendBtnRef = useRef<HTMLSpanElement>(null);
+  const cursor = useDemoCursor();
+  const status = statusConfig[DEMO_STATUS];
+  const skip = reducedMotion || !playing;
+
+  const ultima = mensagens[mensagens.length - 1] ?? null;
+  const totalPalavrasUltima = useMemo(
+    () => (ultima ? contarPalavrasResposta(ultima.resposta) : 0),
+    [ultima],
+  );
+
+  const displayFase = reducedMotion ? "done" : fase;
+  const displayPalavras = reducedMotion ? totalPalavrasUltima : palavras;
+  const ocupado = mensagens.length > 0 && displayFase !== "done";
+
+  // Rola pro fim a cada mensagem nova ou palavra revelada — mesmo padrão do
+  // chat real (`laudo-chat.tsx`), só que aqui não depende de clique.
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [mensagens.length, palavras]);
+
+  function perguntar(escolhida: DemoChatQa) {
+    setMensagens((m) => [...m, escolhida]);
+    setPalavras(0);
+    setFase(reducedMotion ? "done" : "lendo");
+  }
+
+  // Piloto automático: 1ª pergunta por clique num chip; depois de streamar a
+  // resposta, o cursor "digita" a 2ª pergunta no campo e a submete — uma
+  // conversa contínua, não só um clique isolado.
+  useEffect(() => {
+    if (skip) return;
+    let cancelled = false;
+    (async () => {
+      cursor.show();
+      await wait(500);
+      if (cancelled) return;
+
+      const chip = chipsRef.current?.querySelector("button");
+      if (chip) {
+        await cursor.moveToEl(chip);
+        if (cancelled) return;
+        await cursor.pulse();
+        chip.click();
+      }
+      // espera a 1ª resposta terminar de streamar (lendo + palavras + pausa)
+      await wait(700 + contarPalavrasResposta(ROTEIRO_AUTOPLAY[0].resposta) * 40 + 900);
+      if (cancelled) return;
+
+      await cursor.moveToEl(inputRef.current);
+      if (cancelled) return;
+      const pergunta2 = ROTEIRO_AUTOPLAY[1].pergunta;
+      for (let i = 1; i <= pergunta2.length; i++) {
+        if (cancelled) return;
+        setInputTexto(pergunta2.slice(0, i));
+        await wait(38);
+      }
+      await wait(300);
+      if (cancelled) return;
+
+      await cursor.moveToEl(sendBtnRef.current);
+      if (cancelled) return;
+      await cursor.pulse();
+      setInputTexto("");
+      perguntar(ROTEIRO_AUTOPLAY[1]);
+      cursor.hide();
+    })();
+    return () => {
+      cancelled = true;
+      cursor.hide();
+      setInputTexto("");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skip, cursor]);
+
+  // "Lendo o laudo…" → streaming palavra a palavra → mensagem completa.
+  useEffect(() => {
+    if (!ultima || reducedMotion) return;
+    if (fase === "lendo") {
+      const t = window.setTimeout(() => setFase("streaming"), 700);
+      return () => window.clearTimeout(t);
+    }
+    if (fase === "streaming") {
+      const t = window.setInterval(() => {
+        setPalavras((p) => Math.min(p + 1, totalPalavrasUltima));
+      }, 40);
+      return () => window.clearInterval(t);
+    }
+  }, [ultima, fase, reducedMotion, totalPalavrasUltima]);
+
+  useEffect(() => {
+    if (fase === "streaming" && totalPalavrasUltima > 0 && palavras >= totalPalavrasUltima) {
+      setFase("done");
+    }
+  }, [fase, palavras, totalPalavrasUltima]);
+
+  const jaPerguntadas = new Set(mensagens.map((m) => m.pergunta));
+  const sugestoesDisponiveis = DEMO_CHAT_QAS.filter(
+    (q) => !jaPerguntadas.has(q.pergunta),
+  );
+  const mostrarChips =
+    sugestoesDisponiveis.length > 0 && (mensagens.length === 0 || !playing);
+
+  return (
+    <div className="flex h-full flex-col justify-center gap-3 p-5 sm:p-6">
+      {/* laudo aberto — mesma leitura (status.ts) da cena de dashboard */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-2.5">
+        <p className="min-w-0 truncate text-sm font-semibold tracking-tight">
+          {DEMO_PREDIO}
+        </p>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <status.Icon className={cn("size-4", status.accent)} strokeWidth={2.25} />
+          <span className={cn("text-sm font-semibold tracking-tight", status.accent)}>
+            {status.label}
+          </span>
+        </span>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-green/20 text-brand-green-strong">
+            <MessageCircleQuestion className="size-4" strokeWidth={2.25} />
+          </span>
+          <p className="text-base font-semibold tracking-tight">Pergunte ao laudo</p>
+        </div>
+
+        <div
+          ref={listRef}
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+        >
+          {mensagens.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Tire dúvidas em português. A resposta sai só do que está neste
+              laudo — sem inventar.
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-3">
+              {mensagens.map((msg, i) => {
+                const éÚltima = i === mensagens.length - 1;
+                const faseMsg = éÚltima ? displayFase : "done";
+                const palavrasMsg = éÚltima
+                  ? displayPalavras
+                  : contarPalavrasResposta(msg.resposta);
+                return (
+                  <li key={msg.pergunta} className="flex flex-col gap-2">
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl bg-foreground px-3.5 py-2 text-sm leading-relaxed text-background">
+                        {msg.pergunta}
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      {faseMsg === "lendo" ? (
+                        <div className="rounded-2xl bg-muted px-3.5 py-2 text-sm text-muted-foreground">
+                          Lendo o laudo…
+                        </div>
+                      ) : (
+                        <div className="max-w-[85%] rounded-2xl bg-muted px-3.5 py-2 text-sm leading-relaxed text-foreground">
+                          <RespostaStream
+                            resposta={msg.resposta}
+                            palavras={palavrasMsg}
+                            digitando={faseMsg === "streaming"}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          {mostrarChips ? (
+            <div ref={chipsRef} className="flex flex-wrap gap-2">
+              {sugestoesDisponiveis.map((opcao) => (
+                <button
+                  key={opcao.pergunta}
+                  type="button"
+                  disabled={ocupado}
+                  onClick={() => perguntar(opcao)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand-green-strong/40 hover:bg-brand-green/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Sparkles className="size-3.5" strokeWidth={2} />
+                  {opcao.pergunta}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {/* input decorativo — na demo quem "digita" é o cursor-fantasma */}
+        <div className="flex items-center gap-2 border-t border-border px-4 py-3" aria-hidden>
+          <div
+            ref={inputRef}
+            className="pointer-events-none min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          >
+            {inputTexto ? (
+              <span className="text-foreground">
+                {inputTexto}
+                <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse rounded-full bg-brand-green-strong align-[-2px]" />
+              </span>
+            ) : (
+              <span className="text-muted-foreground/60">
+                Ex: posso usar o elevador?
+              </span>
+            )}
+          </div>
+          <span
+            ref={sendBtnRef}
+            className={cn(
+              "pointer-events-none inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-opacity",
+              inputTexto
+                ? "bg-primary opacity-100"
+                : "bg-primary opacity-40",
+            )}
+          >
+            <Send className="size-4" strokeWidth={2.25} />
+          </span>
+        </div>
+
+        {/* Liability (ADR-002): o chat comunica o laudo, não certifica segurança. */}
+        <p className="px-4 pb-3 text-xs text-muted-foreground">
+          Respostas baseadas só neste laudo. Não substituem a avaliação do
+          responsável técnico que o assinou.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Revela a resposta por contagem de palavras, parágrafo a parágrafo, com o
+ * negrito vindo da estrutura (`forte`) — sem parsear Markdown no meio do
+ * stream. O caret verde pisca no fim do último trecho enquanto digita. */
+function RespostaStream({
+  resposta,
+  palavras,
+  digitando,
+}: {
+  resposta: DemoChatSegmento[][];
+  palavras: number;
+  digitando: boolean;
+}) {
+  let restante = palavras;
+  const paragrafos = resposta
+    .map((paragrafo, pi) => {
+      const partes: { key: string; texto: string; forte?: boolean }[] = [];
+      paragrafo.forEach((seg, si) => {
+        const tokens = seg.texto.split(/\s+/).filter(Boolean);
+        if (restante <= 0 || tokens.length === 0) return;
+        const take = Math.min(tokens.length, restante);
+        restante -= take;
+        partes.push({
+          key: `${pi}-${si}`,
+          texto: tokens.slice(0, take).join(" "),
+          forte: seg.forte,
+        });
+      });
+      return { key: pi, partes };
+    })
+    .filter((p) => p.partes.length > 0);
+
+  return (
+    <div className="space-y-1.5">
+      {paragrafos.map((paragrafo, i) => (
+        <p key={paragrafo.key}>
+          {paragrafo.partes.map((parte, j) => (
+            <span key={parte.key} className={parte.forte ? "font-semibold" : undefined}>
+              {j > 0 ? " " : ""}
+              {parte.texto}
+            </span>
+          ))}
+          {digitando && i === paragrafos.length - 1 ? (
+            <span
+              aria-hidden
+              className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse rounded-full bg-brand-green-strong align-[-2px]"
+            />
+          ) : null}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- cena 5 --- */
 
 const FLUXO_PILL: Record<DemoFluxo, { label: string; cls: string }> = {
   rascunho: {
